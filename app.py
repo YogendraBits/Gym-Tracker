@@ -2843,42 +2843,96 @@ def main_app():
             else:
                 st.info("No workout plans created yet")
 
-    # Timer Page
+    
     elif page == "⏱️ Timer":
-        st.markdown('<h1 class="page-title">⏱️ Workout Timers</h1>',
-                    unsafe_allow_html=True)
+        # Timer Page
+        try:
+                with open('timer.css') as f:
+                    st.markdown(f'<style>{f.read()}</style>',
+                                unsafe_allow_html=True)
+        except:
+            pass
+                # Fallback if CSS file not found
+        def rest_timer(duration_minutes, key_prefix=""):
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                if st.button(f"▶️ Start {duration_minutes} min", key=f"{key_prefix}start_{duration_minutes}", use_container_width=True):
+                    st.session_state[f"{key_prefix}timer_{duration_minutes}"] = time.time()
 
+            with col2:
+                timer_key = f"{key_prefix}timer_{duration_minutes}"
+                if timer_key in st.session_state:
+                    elapsed = time.time() - st.session_state[timer_key]
+                    remaining = duration_minutes * 60 - elapsed
+                    if remaining > 0:
+                        mins, secs = divmod(int(remaining), 60)
+                        st.markdown(f"""
+                        <div class="status-success countdown-animation">
+                            ⏳ {mins:02d}:{secs:02d} remaining
+                        </div>
+                        """, unsafe_allow_html=True)
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.markdown("""
+                        <div class="status-warning">
+                            ✅ Rest Complete! Time to get back to work! 💪
+                        </div>
+                        """, unsafe_allow_html=True)
+                        del st.session_state[timer_key]
+
+        # Main page title
+        st.markdown('<h1 class="page-title">⏱️ Workout Timers</h1>', unsafe_allow_html=True)
+        
         col1, col2 = st.columns(2)
 
+        # --- Left: Predefined Timers ---
         with col1:
-            st.markdown("### Rest Timers")
-            st.markdown("**Quick Rest Periods**")
-            rest_timer(1)
-            rest_timer(2)
-            rest_timer(3)
-            rest_timer(5)
+            st.markdown('<div class="section-header">Rest Timers</div>', unsafe_allow_html=True)
+            st.markdown('<div class="quick-rest-header">⚡ Quick Rest Periods</div>', unsafe_allow_html=True)
+            
+            rest_timer(1, key_prefix="quick_")
+            rest_timer(2, key_prefix="quick_")
+            rest_timer(3, key_prefix="quick_")
+            rest_timer(5, key_prefix="quick_")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
+        # --- Right: Custom Timer ---
         with col2:
-            st.markdown("### Custom Timer")
+            st.markdown('<div class="section-header">Custom Timer</div>', unsafe_allow_html=True)
+            
             custom_minutes = st.number_input(
-                "Custom Timer (minutes)", min_value=1, max_value=60, value=2)
-            rest_timer(custom_minutes)
+                "Custom Timer (minutes)", 
+                min_value=1, 
+                max_value=60, 
+                value=2,
+                help="Set your custom rest duration"
+            )
+            rest_timer(custom_minutes, key_prefix="custom_")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # Workout timer (simple implementation)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # --- Workout Timer Section ---
         st.markdown("---")
-        st.markdown("### Workout Timer")
+        
+        st.markdown('<div class="timer-container">', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🏋️ Workout Session Timer</div>', unsafe_allow_html=True)
 
         if "workout_timer_start" not in st.session_state:
             st.session_state.workout_timer_start = None
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns([1, 1, 2])
 
         with col1:
-            if st.button("▶️ Start Workout Timer", use_container_width=True):
+            if st.button("▶️ Start Workout", use_container_width=True, help="Begin tracking your workout session"):
                 st.session_state.workout_timer_start = time.time()
 
         with col2:
-            if st.button("⏹️ Stop Workout Timer", use_container_width=True):
+            if st.button("⏹️ Stop Workout", use_container_width=True, help="End your workout session"):
                 st.session_state.workout_timer_start = None
 
         if st.session_state.workout_timer_start:
@@ -2890,11 +2944,53 @@ def main_app():
                 st.markdown(f"""
                 <div class="workout-timer">
                     <div class="timer-display-large">{hours:02d}:{minutes:02d}:{seconds:02d}</div>
-                    <div class="timer-label">Workout Duration</div>
+                    <div class="timer-label">💪 Workout Duration</div>
                 </div>
                 """, unsafe_allow_html=True)
+
             time.sleep(1)
             st.rerun()
+        else:
+            with col3:
+                st.markdown("""
+                <div class="workout-timer">
+                    <div class="timer-display-large">00:00:00</div>
+                    <div class="timer-label">Ready to Start! 🚀</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Additional features section
+        st.markdown("---")
+        st.markdown('<div class="timer-container">', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            <div class="timer-card">
+                <h4>💡 Timer Tips</h4>
+                <ul>
+                    <li>🎯 Use 1-2 min rest for light exercises</li>
+                    <li>💪 Use 2-3 min rest for moderate weights</li>
+                    <li>🏋️ Use 3-5 min rest for heavy lifts</li>
+                    <li>⏰ Track total workout time for consistency</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div class="timer-card">
+                <h4>📊 Quick Stats</h4>
+                <p>🔥 <strong>Active Timers:</strong> Visual countdown displays</p>
+                <p>⚡ <strong>Quick Access:</strong> Pre-set common rest periods</p>
+                <p>🎨 <strong>Custom Duration:</strong> Set any rest time you need</p>
+                <p>📱 <strong>Responsive:</strong> Works on all devices</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # Export Data Page
     elif page == "📊 Export Data":
