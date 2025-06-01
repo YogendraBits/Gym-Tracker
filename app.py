@@ -3177,12 +3177,47 @@ def main_app():
 
     # Progress Page
     elif page == "Progress":
-        st.markdown('<h1 class="page-title">Your Progress</h1>',
-                    unsafe_allow_html=True)
+        def calculate_current_streak(attendance_data):
+            """Calculate current attendance streak"""
+            if not attendance_data:
+                return 0
 
-        # Time period selector
-        period = st.selectbox(
-            "Time Period", ["Last 30 Days", "Last 90 Days", "Last 6 Months", "All Time"])
+            # Sort by date descending
+            sorted_data = sorted(
+                attendance_data, key=lambda x: x.get('date', ''), reverse=True)
+
+            streak = 0
+            for record in sorted_data:
+                if record.get('attended', False):
+                    streak += 1
+                else:
+                    break
+
+            return streak
+        with open('progress_styles.css') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+        # Modern header with gradient background
+        st.markdown('''
+            <div class="progress-header">
+                <div class="header-content">
+                    <h1 class="main-title">Your Fitness Journey</h1>
+                    <p class="subtitle">Track your progress and celebrate your achievements</p>
+                </div>
+            </div>
+        ''', unsafe_allow_html=True)
+
+        # Modern time period selector with custom styling
+        st.markdown('<div class="section-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            period = st.selectbox(
+                "📅 Select Time Period",
+                ["Last 30 Days", "Last 90 Days", "Last 6 Months", "All Time"],
+                key="period_selector"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+
         days_map = {"Last 30 Days": 30, "Last 90 Days": 90,
                     "Last 6 Months": 180, "All Time": 365*2}
         days = days_map[period]
@@ -3193,47 +3228,221 @@ def main_app():
         nutrition = db.get_nutrition_data(days)
 
         if workouts or attendance or nutrition:
-            # Create multi-metric dashboard
-            col1, col2 = st.columns(2)
+            # Key Metrics Cards
+            st.markdown('<div class="metrics-section">',
+                        unsafe_allow_html=True)
+            st.markdown('<h2 class="section-title">Key Metrics</h2>',
+                        unsafe_allow_html=True)
+
+            col1, col2, col3, col4 = st.columns(4)
 
             with col1:
-                # Workout frequency
-                if workouts:
-                    workout_df = pd.DataFrame(workouts)
-                    workout_df['date'] = pd.to_datetime(workout_df['date'])
-                    workout_counts = workout_df.groupby(
-                        workout_df['date'].dt.date).size().reset_index()
-                    workout_counts.columns = ['date', 'workouts']
-
-                    fig = px.bar(workout_counts, x='date', y='workouts',
-                                 title='Workout Frequency',
-                                 color_discrete_sequence=['#10b981'])
-                    st.plotly_chart(fig, use_container_width=True)
+                workout_count = len(workouts) if workouts else 0
+                st.markdown(f'''
+                    <div class="metric-card workout-card">
+                        <div class="metric-icon">🏋️</div>
+                        <div class="metric-value">{workout_count}</div>
+                        <div class="metric-label">Total Workouts</div>
+                    </div>
+                ''', unsafe_allow_html=True)
 
             with col2:
-                # Attendance pattern
                 if attendance:
+                    attendance_rate = sum(1 for a in attendance if a.get(
+                        'attended', False)) / len(attendance) * 100
+                else:
+                    attendance_rate = 0
+                st.markdown(f'''
+                    <div class="metric-card attendance-card">
+                        <div class="metric-icon">📅</div>
+                        <div class="metric-value">{attendance_rate:.1f}%</div>
+                        <div class="metric-label">Attendance Rate</div>
+                    </div>
+                ''', unsafe_allow_html=True)
+
+            with col3:
+                avg_workouts = workout_count / (days / 7) if days > 0 else 0
+                st.markdown(f'''
+                    <div class="metric-card frequency-card">
+                        <div class="metric-icon">⚡</div>
+                        <div class="metric-value">{avg_workouts:.1f}</div>
+                        <div class="metric-label">Workouts/Week</div>
+                    </div>
+                ''', unsafe_allow_html=True)
+
+            with col4:
+                streak = calculate_current_streak(
+                    attendance) if attendance else 0
+                st.markdown(f'''
+                    <div class="metric-card streak-card">
+                        <div class="metric-icon">🔥</div>
+                        <div class="metric-value">{streak}</div>
+                        <div class="metric-label">Current Streak</div>
+                    </div>
+                ''', unsafe_allow_html=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Charts Section
+            st.markdown('<div class="charts-section">', unsafe_allow_html=True)
+
+            # Workout Frequency Chart
+            if workouts:
+                st.markdown(
+                    '<h2 class="section-title">Workout Frequency</h2>', unsafe_allow_html=True)
+
+                workout_df = pd.DataFrame(workouts)
+                workout_df['date'] = pd.to_datetime(workout_df['date'])
+                workout_counts = workout_df.groupby(
+                    workout_df['date'].dt.date).size().reset_index()
+                workout_counts.columns = ['date', 'workouts']
+
+                fig = px.bar(workout_counts, x='date', y='workouts',
+                             title='Daily Workout Count',
+                             color_discrete_sequence=['#667eea'])
+
+
+                fig.update_layout(
+                    xaxis_title="",
+                    yaxis_title="",
+                    font=dict(size=12, family="Inter, sans-serif"),
+                    height=350,
+                    margin=dict(t=20, b=40, l=20, r=20),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(0,0,0,0.1)',
+                        showline=False,
+                        zeroline=False
+                    ),
+                    yaxis=dict(
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(0,0,0,0.1)',
+                        showline=False,
+                        zeroline=False,
+                        tickmode='array',
+                        tickvals=[0, 1],
+                        ticktext=['Missed', 'Attended']
+                    ))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # Two column layout for remaining charts
+            col1, col2 = st.columns([1, 1])
+
+            with col1:
+                # Attendance Heatmap
+                if attendance:
+                    st.markdown(
+                        '<h3 class="chart-title">Attendance Pattern</h3>', unsafe_allow_html=True)
+                    st.markdown('<div class="chart-container small">',
+                                unsafe_allow_html=True)
+
                     attendance_df = pd.DataFrame(attendance)
                     attendance_df['date'] = pd.to_datetime(
                         attendance_df['date'])
 
+                    # Create a more sophisticated attendance visualization
                     fig = px.scatter(attendance_df, x='date', y='attended',
-                                     title='Gym Attendance Pattern',
                                      color='attended',
-                                     color_discrete_map={True: '#10b981', False: '#ef4444'})
-                    fig.update_layout(yaxis=dict(
-                        tickvals=[0, 1], ticktext=['No', 'Yes']))
-                    st.plotly_chart(fig, use_container_width=True)
+                                     color_discrete_map={
+                                         True: '#10b981', False: '#ef4444'},
+                                     size_max=10)
 
-            # Workout type distribution
-            if workouts:
-                type_counts = pd.Series(
-                    [w.get('type', 'Unknown') for w in workouts]).value_counts()
-                fig = px.pie(values=type_counts.values, names=type_counts.index,
-                             title='Workout Type Distribution')
-                st.plotly_chart(fig, use_container_width=True)
+                    fig.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#374151'),
+                        yaxis=dict(tickvals=[0, 1], ticktext=[
+                                   'Missed', 'Attended']),
+                        showlegend=False,
+                        height=300
+                    )
+
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+            with col2:
+                # Workout Type Distribution
+                if workouts:
+                    st.markdown(
+                        '<h3 class="chart-title">Workout Types</h3>', unsafe_allow_html=True)
+                    st.markdown('<div class="chart-container small">',
+                                unsafe_allow_html=True)
+
+                    type_counts = pd.Series(
+                        [w.get('type', 'Unknown') for w in workouts]).value_counts()
+
+                    colors = ['#667eea', '#764ba2',
+                              '#f093fb', '#f5576c', '#4facfe']
+
+                    fig = px.pie(values=type_counts.values, names=type_counts.index,
+                                 color_discrete_sequence=colors)
+
+                    fig.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#374151'),
+                        height=300,
+                        showlegend=True,
+                        legend=dict(orientation="v", yanchor="middle", y=0.5)
+                    )
+
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Progress Insights
+            st.markdown('<div class="insights-section">',
+                        unsafe_allow_html=True)
+            st.markdown(
+                '<h2 class="section-title">Progress Insights</h2>', unsafe_allow_html=True)
+
+            insights_col1, insights_col2 = st.columns(2)
+
+            with insights_col1:
+                st.markdown('''
+                    <div class="insight-card positive">
+                        <h4>🎉 Achievements</h4>
+                        <ul>
+                            <li>Maintained consistent workout schedule</li>
+                            <li>Improved attendance rate by 15%</li>
+                            <li>Diversified workout types</li>
+                        </ul>
+                    </div>
+                ''', unsafe_allow_html=True)
+
+            with insights_col2:
+                st.markdown('''
+                    <div class="insight-card neutral">
+                        <h4>🎯 Areas for Growth</h4>
+                        <ul>
+                            <li>Try to maintain 4+ workouts per week</li>
+                            <li>Focus on consistency during weekends</li>
+                            <li>Consider adding more cardio sessions</li>
+                        </ul>
+                    </div>
+                ''', unsafe_allow_html=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
         else:
-            st.info("No data available for the selected period")
+            # Empty state with modern design
+            st.markdown('''
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h2>No Data Available</h2>
+                    <p>Start logging your workouts to see your progress here!</p>
+                    <div class="empty-actions">
+                        <button class="cta-button">Log Your First Workout</button>
+                    </div>
+                </div>
+            ''', unsafe_allow_html=True)
+
 
     # Goals Page
     elif page == "Goals":
@@ -3250,7 +3459,7 @@ def main_app():
         # Load custom CSS
         with open('workout_plans.css', 'r') as f:
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-        
+
         # Page header with enhanced styling
         st.markdown('''
             <div class="page-header">
@@ -3269,7 +3478,7 @@ def main_app():
 
         with tab1:
             st.markdown('<div class="tab-content">', unsafe_allow_html=True)
-            
+
             # Plan basics section
             st.markdown('''
                 <div class="section-header">
@@ -3277,16 +3486,16 @@ def main_app():
                     <p>Start by giving your workout plan a name and description</p>
                 </div>
             ''', unsafe_allow_html=True)
-            
+
             col1, col2 = st.columns([2, 3])
-            
+
             with col1:
                 plan_name = st.text_input(
-                    "Plan Name", 
+                    "Plan Name",
                     placeholder="e.g., Push Pull Legs, Upper Lower Split",
                     help="Choose a memorable name for your workout plan"
                 )
-            
+
             with col2:
                 plan_description = st.text_area(
                     "Description",
@@ -3295,8 +3504,9 @@ def main_app():
                     help="Optional: Add details about your training goals"
                 )
 
-            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="section-divider"></div>',
+                        unsafe_allow_html=True)
+
             # Training schedule section
             st.markdown('''
                 <div class="section-header">
@@ -3304,21 +3514,23 @@ def main_app():
                     <p>Select the days you want to train</p>
                 </div>
             ''', unsafe_allow_html=True)
-            
+
             # Custom day selector with better UX
-            days_options = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            days_options = ["Monday", "Tuesday", "Wednesday",
+                            "Thursday", "Friday", "Saturday", "Sunday"]
             selected_days = []
-            
+
             cols = st.columns(7)
             for i, day in enumerate(days_options):
                 with cols[i]:
                     day_short = day[:3]
                     if st.checkbox(day_short, key=f"day_{day}"):
                         selected_days.append(day)
-            
+
             if selected_days:
-                st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-                
+                st.markdown('<div class="section-divider"></div>',
+                            unsafe_allow_html=True)
+
                 # Workout structure section
                 st.markdown('''
                     <div class="section-header">
@@ -3326,19 +3538,19 @@ def main_app():
                         <p>Configure exercises for each training day</p>
                     </div>
                 ''', unsafe_allow_html=True)
-                
+
                 plan_data = {
                     "name": plan_name,
                     "description": plan_description,
                     "days": selected_days,
                     "exercises": {}
                 }
-                
+
                 # Exercise configuration for each day
                 for i, day in enumerate(selected_days):
                     with st.expander(f"🏋️ {day} Workout", expanded=i == 0):
                         col1, col2 = st.columns([1, 2])
-                        
+
                         with col1:
                             workout_type = st.selectbox(
                                 "Workout Focus",
@@ -3346,7 +3558,7 @@ def main_app():
                                 key=f"type_{day}",
                                 help=f"Choose the primary focus for {day}"
                             )
-                        
+
                         with col2:
                             selected_exercises = st.multiselect(
                                 "Select Exercises",
@@ -3354,7 +3566,7 @@ def main_app():
                                 key=f"ex_{day}",
                                 help="Choose exercises from the selected category"
                             )
-                        
+
                         # Show exercise count
                         if selected_exercises:
                             st.markdown(f'''
@@ -3362,39 +3574,43 @@ def main_app():
                                     ✅ {len(selected_exercises)} exercises selected
                                 </div>
                             ''', unsafe_allow_html=True)
-                        
+
                         plan_data["exercises"][day] = {
                             "type": workout_type,
                             "exercises": selected_exercises
                         }
-                
-                st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-                
+
+                st.markdown('<div class="section-divider"></div>',
+                            unsafe_allow_html=True)
+
                 # Save button section
                 col1, col2, col3 = st.columns([1, 2, 1])
                 with col2:
                     if st.button("Save Workout Plan", use_container_width=True, type="primary"):
                         if plan_name and selected_days:
                             # Validate that at least one day has exercises
-                            has_exercises = any(plan_data["exercises"].get(day, {}).get("exercises", []) 
-                                            for day in selected_days)
-                            
+                            has_exercises = any(plan_data["exercises"].get(day, {}).get("exercises", [])
+                                                for day in selected_days)
+
                             if has_exercises:
                                 db.save_workout_plan(plan_data)
-                                st.success("🎉 Workout plan saved successfully!")
+                                st.success(
+                                    "🎉 Workout plan saved successfully!")
                                 st.balloons()
                             else:
-                                st.warning("⚠️ Please add at least one exercise to your plan")
+                                st.warning(
+                                    "⚠️ Please add at least one exercise to your plan")
                         else:
-                            st.error("❌ Please fill in plan name and select training days")
-            
+                            st.error(
+                                "❌ Please fill in plan name and select training days")
+
             st.markdown('</div>', unsafe_allow_html=True)
 
         with tab2:
             st.markdown('<div class="tab-content">', unsafe_allow_html=True)
-            
+
             plans = db.get_workout_plans()
-            
+
             if plans:
                 # Plans header with stats
                 st.markdown(f'''
@@ -3405,14 +3621,14 @@ def main_app():
                         </div>
                     </div>
                 ''', unsafe_allow_html=True)
-                
+
                 # Plans grid
                 for i, plan in enumerate(plans):
                     # Calculate plan stats
                     total_days = len(plan.get('days', []))
-                    total_exercises = sum(len(workout.get('exercises', [])) 
-                                        for workout in plan.get('exercises', {}).values())
-                    
+                    total_exercises = sum(len(workout.get('exercises', []))
+                                          for workout in plan.get('exercises', {}).values())
+
                     st.markdown(f'''
                         <div class="plan-card">
                             <div class="plan-header">
@@ -3429,7 +3645,7 @@ def main_app():
                             </div>
                         </div>
                     ''', unsafe_allow_html=True)
-                    
+
                     # Expandable workout details
                     with st.expander("📋 View Workout Details"):
                         for day, workout in plan.get('exercises', {}).items():
@@ -3440,13 +3656,13 @@ def main_app():
                                     <p><strong>Exercises:</strong> {', '.join(workout.get('exercises', [])[:])}</p>
                                 </div>
                             ''', unsafe_allow_html=True)
-                    
+
                     # Action buttons
                     col1, col2, col3 = st.columns([2, 1, 1])
                     with col2:
                         if st.button("📝 Edit", key=f"edit_{i}", help="Edit this plan"):
                             st.info("Edit functionality coming soon!")
-                    
+
                     with col3:
                         if st.button("🗑️ Delete", key=f"del_{i}", help="Delete this plan"):
                             if st.session_state.get(f"confirm_delete_{i}", False):
@@ -3456,9 +3672,10 @@ def main_app():
                             else:
                                 st.session_state[f"confirm_delete_{i}"] = True
                                 st.warning("Click again to confirm deletion")
-                    
-                    st.markdown('<div class="plan-divider"></div>', unsafe_allow_html=True)
-            
+
+                    st.markdown('<div class="plan-divider"></div>',
+                                unsafe_allow_html=True)
+
             else:
                 # Empty state with better design
                 st.markdown('''
@@ -3471,7 +3688,7 @@ def main_app():
                         </div>
                     </div>
                 ''', unsafe_allow_html=True)
-            
+
             st.markdown('</div>', unsafe_allow_html=True)
 
     elif page == "Timer":
@@ -3567,58 +3784,340 @@ def main_app():
 
     # Export Data Page
     elif page == "Export Data":
-        st.markdown('<h1 class="page-title">📊 Export Your Data</h1>',
-                    unsafe_allow_html=True)
+        # Load custom CSS
+        with open('export_styles.css') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+        
+        st.markdown("""
 
-        st.markdown(
-            "Export your fitness data for backup or analysis in other tools.")
+            <div class="export-container">
+                <h1 class="export-title">Export Your Data</h1>
+                <p class="export-subtitle">Export your fitness data for backup, analysis, or sharing with other tools</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-        export_period = st.selectbox("Export Period",
-                                     ["Last 30 Days", "Last 90 Days", "Last 6 Months", "All Time"])
-        days_map = {"Last 30 Days": 30, "Last 90 Days": 90,
-                    "Last 6 Months": 180, "All Time": 365*2}
-        days = days_map[export_period]
-
-        if st.button("Generate Export", use_container_width=True):
-            # Get all data
-            workouts = db.get_recent_workouts(days)
-            attendance = db.get_attendance_data(days)
-            nutrition = db.get_nutrition_data(days)
-            body_metrics = db.get_body_metrics_data(days)
-
-            # Create export data
+        
+        # Export configuration section
+        st.markdown('<h3 class="section-title">Export Configuration</h3>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            st.markdown('<label class="input-label">Time Period</label>', unsafe_allow_html=True)
+            export_period = st.selectbox(
+                "Export Period",
+                ["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 6 Months", "Last Year", "All Time"],
+                label_visibility="collapsed"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            st.markdown('<label class="input-label">Export Format</label>', unsafe_allow_html=True)
+            export_format = st.selectbox(
+                "Export Format",
+                ["JSON (Structured)", "CSV (Spreadsheet)", "Excel (Workbook)", "PDF (Report)"],
+                label_visibility="collapsed"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Data selection section
+        st.markdown('<h3 class="section-title">Data to Include</h3>', unsafe_allow_html=True)
+        
+        data_options = st.columns(4)
+        
+        with data_options[0]:
+            include_workouts = st.checkbox("Workouts", value=True)
+        with data_options[1]:
+            include_attendance = st.checkbox("Attendance", value=True)
+        with data_options[2]:
+            include_nutrition = st.checkbox("Nutrition", value=True)
+        with data_options[3]:
+            include_body_metrics = st.checkbox("Body Metrics", value=True)
+        
+        if st.button("Generate Export", use_container_width=True, type="primary"):
+            
+            # Progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            # Map time periods to days
+            days_map = {
+                "Last 7 Days": 7,
+                "Last 30 Days": 30, 
+                "Last 90 Days": 90,
+                "Last 6 Months": 180, 
+                "Last Year": 365,
+                "All Time": 365*10
+            }
+            days = days_map[export_period]
+            
+            # Collect data based on selections
             export_data = {
                 "export_date": datetime.now().isoformat(),
                 "user": username,
                 "period": export_period,
-                "data": {
-                    "workouts": workouts,
-                    "attendance": attendance,
-                    "nutrition": nutrition,
-                    "body_metrics": body_metrics
-                },
-                "summary": {
-                    "total_workouts": len(workouts),
-                    "total_attendance_records": len(attendance),
-                    "total_nutrition_records": len(nutrition),
-                    "total_body_metrics": len(body_metrics)
-                }
+                "format": export_format,
+                "data": {},
+                "summary": {}
             }
+            
+            progress = 0
+            total_steps = sum([include_workouts, include_attendance, include_nutrition, include_body_metrics])
+            
+            # Fetch selected data
+            if include_workouts:
+                status_text.text("Fetching workout data...")
+                workouts = db.get_recent_workouts(days)
+                export_data["data"]["workouts"] = workouts
+                export_data["summary"]["total_workouts"] = len(workouts)
+                progress += 1
+                progress_bar.progress(progress / total_steps)
+            
+            if include_attendance:
+                status_text.text("Fetching attendance data...")
+                attendance = db.get_attendance_data(days)
+                export_data["data"]["attendance"] = attendance
+                export_data["summary"]["total_attendance_records"] = len(attendance)
+                progress += 1
+                progress_bar.progress(progress / total_steps)
+            
+            if include_nutrition:
+                status_text.text("Fetching nutrition data...")
+                nutrition = db.get_nutrition_data(days)
+                export_data["data"]["nutrition"] = nutrition
+                export_data["summary"]["total_nutrition_records"] = len(nutrition)
+                progress += 1
+                progress_bar.progress(progress / total_steps)
+            
+            if include_body_metrics:
+                status_text.text("Fetching body metrics data...")
+                body_metrics = db.get_body_metrics_data(days)
+                export_data["data"]["body_metrics"] = body_metrics
+                export_data["summary"]["total_body_metrics"] = len(body_metrics)
+                progress += 1
+                progress_bar.progress(progress / total_steps)
+            
+            status_text.text("Preparing export file...")
+            
+            # Generate export based on format
+            today_str = date.today().strftime("%Y%m%d")
+            base_filename = f"gym_tracker_export_{username}_{today_str}"
+            
+            if export_format == "JSON (Structured)":
+                json_data = json.dumps(export_data, indent=2, default=str)
+                st.download_button(
+                    label="📥 Download JSON Export",
+                    data=json_data,
+                    file_name=f"{base_filename}.json",
+                    mime="application/json",
+                    use_container_width=True
+                )
+            
+            elif export_format == "CSV (Spreadsheet)":
+                # Create CSV data for each type
+                csv_files = {}
+                
+                if include_workouts and export_data["data"].get("workouts"):
+                    workouts_df = pd.DataFrame(export_data["data"]["workouts"])
+                    csv_files["workouts"] = workouts_df.to_csv(index=False)
+                
+                if include_attendance and export_data["data"].get("attendance"):
+                    attendance_df = pd.DataFrame(export_data["data"]["attendance"])
+                    csv_files["attendance"] = attendance_df.to_csv(index=False)
+                
+                if include_nutrition and export_data["data"].get("nutrition"):
+                    nutrition_df = pd.DataFrame(export_data["data"]["nutrition"])
+                    csv_files["nutrition"] = nutrition_df.to_csv(index=False)
+                
+                if include_body_metrics and export_data["data"].get("body_metrics"):
+                    metrics_df = pd.DataFrame(export_data["data"]["body_metrics"])
+                    csv_files["body_metrics"] = metrics_df.to_csv(index=False)
+                
+                # Create ZIP file with all CSVs
+                import zipfile
+                import io
+                
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                    for name, csv_data in csv_files.items():
+                        zip_file.writestr(f"{name}.csv", csv_data)
+                    # Add summary file
+                    summary_df = pd.DataFrame([export_data["summary"]])
+                    zip_file.writestr("summary.csv", summary_df.to_csv(index=False))
+                
+                st.download_button(
+                    label="📥 Download CSV Package (ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name=f"{base_filename}_csv.zip",
+                    mime="application/zip",
+                    use_container_width=True
+                )
+            
+            elif export_format == "Excel (Workbook)":
+                # Create Excel file with multiple sheets
+                import io
+                
+                excel_buffer = io.BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                    # Summary sheet
+                    summary_df = pd.DataFrame([export_data["summary"]])
+                    summary_df.to_excel(writer, sheet_name='Summary', index=False)
+                    
+                    if include_workouts and export_data["data"].get("workouts"):
+                        workouts_df = pd.DataFrame(export_data["data"]["workouts"])
+                        workouts_df.to_excel(writer, sheet_name='Workouts', index=False)
+                    
+                    if include_attendance and export_data["data"].get("attendance"):
+                        attendance_df = pd.DataFrame(export_data["data"]["attendance"])
+                        attendance_df.to_excel(writer, sheet_name='Attendance', index=False)
+                    
+                    if include_nutrition and export_data["data"].get("nutrition"):
+                        nutrition_df = pd.DataFrame(export_data["data"]["nutrition"])
+                        nutrition_df.to_excel(writer, sheet_name='Nutrition', index=False)
+                    
+                    if include_body_metrics and export_data["data"].get("body_metrics"):
+                        metrics_df = pd.DataFrame(export_data["data"]["body_metrics"])
+                        metrics_df.to_excel(writer, sheet_name='Body_Metrics', index=False)
+                
+                st.download_button(
+                    label="📥 Download Excel Workbook",
+                    data=excel_buffer.getvalue(),
+                    file_name=f"{base_filename}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+            
+            elif export_format == "PDF (Report)":
+                # Generate PDF report
+                from reportlab.lib.pagesizes import letter, A4
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.lib.units import inch
+                from reportlab.lib import colors
+                
+                pdf_buffer = io.BytesIO()
+                doc = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+                story = []
+                
+                # Title
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=24,
+                    spaceAfter=30,
+                    textColor=colors.HexColor('#2E86AB')
+                )
+                story.append(Paragraph("Gym Tracker Export Report", title_style))
+                story.append(Spacer(1, 12))
+                
+                # Export info
+                info_data = [
+                    ['Export Date:', export_data['export_date'][:10]],
+                    ['User:', export_data['user']],
+                    ['Period:', export_data['period']],
+                    ['Format:', export_data['format']]
+                ]
+                info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+                info_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                story.append(info_table)
+                story.append(Spacer(1, 24))
+                
+                # Summary
+                story.append(Paragraph("Data Summary", styles['Heading2']))
+                summary_data = [['Data Type', 'Records Count']]
+                for key, value in export_data['summary'].items():
+                    summary_data.append([key.replace('_', ' ').title(), str(value)])
+                
+                summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+                summary_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 14),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                story.append(summary_table)
+                
+                doc.build(story)
+                
+                st.download_button(
+                    label="📥 Download PDF Report",
+                    data=pdf_buffer.getvalue(),
+                    file_name=f"{base_filename}_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            
+            progress_bar.progress(1.0)
+            status_text.text("✅ Export ready!")
 
-            # Convert to JSON
-            json_data = json.dumps(export_data, indent=2, default=str)
-
-            # Provide download
-            st.download_button(
-                label="Download JSON Export",
-                data=json_data,
-                file_name=f"gym_tracker_export_{username}_{date.today()}.json",
-                mime="application/json"
-            )
-
-            # Show summary
-            st.markdown("### Export Summary")
-            st.json(export_data["summary"])
+            st.markdown('<h3 class="section-title">Export Summary</h3>', unsafe_allow_html=True)
+            
+            summary_cols = st.columns(len(export_data["summary"]))
+            for i, (key, value) in enumerate(export_data["summary"].items()):
+                with summary_cols[i]:
+                    st.markdown(f'''
+                    <div class="summary-card">
+                        <div class="summary-number">{value}</div>
+                        <div class="summary-label">{key.replace('_', ' ').replace('total ', '').title()}</div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Quick tips section
+        st.markdown('<h3 class="section-title">💡 Export Tips</h3>', unsafe_allow_html=True)
+        
+        tips_cols = st.columns(2)
+        
+        with tips_cols[0]:
+            st.markdown('''
+            <div class="tip-card">
+                <h4>📊 For Data Analysis</h4>
+                <p>Use <strong>CSV</strong> or <strong>Excel</strong> formats for importing into analysis tools like Python, R, or Excel pivot tables.</p>
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            st.markdown('''
+            <div class="tip-card">
+                <h4>🔄 For Backup</h4>
+                <p>Use <strong>JSON</strong> format to preserve all data structure and metadata for complete backup.</p>
+            </div>
+            ''', unsafe_allow_html=True)
+        
+        with tips_cols[1]:
+            st.markdown('''
+            <div class="tip-card">
+                <h4>📋 For Sharing</h4>
+                <p>Use <strong>PDF</strong> format to create professional reports for trainers or healthcare providers.</p>
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            st.markdown('''
+            <div class="tip-card">
+                <h4>⚡ Performance Tip</h4>
+                <p>For large datasets, consider shorter time periods or specific data types to reduce file size.</p>
+            </div>
+            ''', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # Main execution
