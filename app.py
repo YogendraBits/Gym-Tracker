@@ -22,13 +22,8 @@ st.set_page_config(
 
 
 def load_css():
-    import os
-    css_file = "styles.css"
-    if os.path.exists(css_file):
-        with open(css_file, 'r') as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-    else:
-        pass
+    with open("styles.css", "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 load_css()
@@ -103,6 +98,32 @@ def authenticate_user(username, password):
     return False, None
 
 
+def delete_user_profile(user_id):
+    """Delete user profile and all associated data"""
+    db = get_database()
+    if db is not None:
+        try:
+            # Delete user data from all collections
+            db.workouts.delete_many({"user_id": user_id})
+            db.attendance.delete_many({"user_id": user_id})
+            db.nutrition.delete_many({"user_id": user_id})
+            db.body_metrics.delete_many({"user_id": user_id})
+            db.exercise_progress.delete_many({"user_id": user_id})
+            db.goals.delete_many({"user_id": user_id})
+            db.workout_plans.delete_many({"user_id": user_id})
+
+            # Delete user account
+            result = db.users.delete_one({"_id": user_id})
+
+            if result.deleted_count > 0:
+                return True, "Profile deleted successfully"
+            else:
+                return False, "User not found"
+        except Exception as e:
+            return False, f"Error deleting profile: {str(e)}"
+    return False, "Database connection failed"
+
+
 def check_authentication():
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
@@ -136,6 +157,7 @@ class GymDatabase:
     def log_workout(self, workout_data):
         if self.db is not None:
             workout_data["user_id"] = self.user_id
+            workout_data["created_at"] = datetime.now()
             return self.workouts.insert_one(workout_data)
 
     def log_attendance(self, date, attended, notes=""):
@@ -247,7 +269,7 @@ def show_auth_page():
     with tab1:
         st.markdown('<div class="auth-form">', unsafe_allow_html=True)
         with st.form("login_form"):
-            st.markdown("### Welcome Back!")
+            st.markdown("### Your Personalized Dashboard")
             username = st.text_input(
                 "Username", placeholder="Enter your username")
             password = st.text_input(
@@ -311,6 +333,224 @@ def show_auth_page():
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+# Profile management page
+def show_profile_page(user_data, db):
+    # Main container
+    st.markdown('<div class="profile-container">', unsafe_allow_html=True)
+
+    # Page header with enhanced styling
+    st.markdown('''
+    <div class="profile-header">
+        <h1 class="page-title">🧑‍💻Profile Settings</h1>
+        <p class="page-subtitle">Manage your account information and preferences</p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Account Information Section
+    st.markdown('''
+    <div class="info-section">
+        <h2 class="section-title">
+            <span class="section-icon"> 📋 </span>
+            <span class="section-text">Account Information</span>
+        </h2>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.markdown('''
+        <div class="profile-avatar-container">
+            <div class="profile-avatar">
+                <div class="avatar-circle">
+                    <span class="avatar-icon">👤</span>
+                </div>
+                <div class="avatar-status">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Active</span>
+                </div>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+    with col2:
+
+        # User information with enhanced styling
+        user_info_items = [
+            ("👤", "Full Name", user_data['full_name']),
+            ("🏷️", "Username", user_data['username']),
+            ("📧", "Email", user_data['email']),
+            ("📅", "Member Since",
+             user_data['created_at'].strftime('%B %d, %Y'))
+        ]
+
+        for icon, label, value in user_info_items:
+            st.markdown(f'''
+            <div class="info-item">
+                <div class="info-icon">{icon}</div>
+                <div class="info-content">
+                    <div class="info-label">{label}</div>
+                    <div class="info-value">{value}</div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)  # Close profile-card
+
+    # Divider with style
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+    # Statistics Section
+    st.markdown('''
+    <div class="stats-section">
+        <h2 class="section-title">
+            <span class="section-icon">📎</span>
+            <span class="section-text">Your Statistics Report</span>
+        </h2>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Get user stats
+    total_workouts = len(db.get_recent_workouts(365*2))
+    total_attendance = len(db.get_attendance_data(365*2))
+    total_nutrition = len(db.get_nutrition_data(365*2))
+
+    col1, col2, col3 = st.columns(3)
+
+    stats_data = [
+        ("💪", "Total Workouts", total_workouts, "#667eea"),
+        ("📅", "Attendance Records", total_attendance, "#764ba2"),
+        ("🥗", "Nutrition Logs", total_nutrition, "#f093fb")
+    ]
+
+    for i, (icon, label, value, color) in enumerate(stats_data):
+        with [col1, col2, col3][i]:
+            st.markdown(f'''
+            <div class="stat-card" style="--accent-color: {color}">
+                <div class="stat-icon">{icon}</div>
+                <div class="stat-content">
+                    <div class="stat-number">{value}</div>
+                    <div class="stat-label">{label}</div>
+                </div>
+                <div class="stat-background"></div>
+            </div>
+            ''', unsafe_allow_html=True)
+
+    # Another divider
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+    # Danger Zone Section
+    st.markdown('''
+    <div class="danger-section">
+        <h2 class="section-title danger-title">
+            <span class="section-icon">⚠️</span>
+            <span class="section-text">Danger Zone</span>
+        </h2>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Enhanced warning banner
+    st.markdown('''
+    <div class="warning-banner">
+        <div class="warning-header">
+            <div class="warning-icon">🗑️</div>
+            <h3 class="warning-title">Delete Account</h3>
+        </div>
+        <div class="warning-content">
+            <p class="warning-text">
+                <strong>Warning:</strong> This action cannot be undone. All your data including 
+                workouts, attendance, nutrition logs, and account information will be 
+                permanently deleted.
+            </p>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Delete confirmation logic with enhanced styling
+    if 'show_delete_confirmation' not in st.session_state:
+        st.session_state.show_delete_confirmation = False
+
+    st.markdown('<div class="delete-actions">', unsafe_allow_html=True)
+
+    if not st.session_state.show_delete_confirmation:
+        if st.button("🗑️ Delete My Account", type="secondary", key="delete_btn"):
+            st.session_state.show_delete_confirmation = True
+            st.rerun()
+    else:
+        # Confirmation dialog
+        st.markdown('''
+        <div class="confirmation-dialog">
+            <div class="dialog-header">
+                <h3 class="dialog-title">⚠️ Confirm Account Deletion</h3>
+                <p class="dialog-subtitle">This action is irreversible</p>
+            </div>
+            <div class="dialog-content">
+                <p class="confirmation-text">Type your username to confirm deletion:</p>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+        # Input container
+        st.markdown('<div class="input-container">', unsafe_allow_html=True)
+        confirmation_input = st.text_input(
+            "Enter your username:",
+            key="delete_confirmation",
+            placeholder="Type your username here..."
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Button container
+        st.markdown('<div class="button-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 1, 1])
+
+        with col1:
+            if st.button("❌ Cancel", use_container_width=True, key="cancel_btn"):
+                st.session_state.show_delete_confirmation = False
+                st.rerun()
+
+        with col2:
+            st.markdown('<div class="spacer"></div>', unsafe_allow_html=True)
+
+        with col3:
+            if st.button("🗑️ DELETE ACCOUNT", type="primary", use_container_width=True, key="confirm_delete_btn"):
+                if confirmation_input == user_data['username']:
+                    success, message = delete_user_profile(user_data['_id'])
+                    if success:
+                        # Clear session state
+                        st.session_state.authenticated = False
+                        st.session_state.user_data = None
+                        if 'show_delete_confirmation' in st.session_state:
+                            del st.session_state.show_delete_confirmation
+
+                        st.markdown('''
+                        <div class="success-message">
+                            <div class="success-icon">✅</div>
+                            <p>Account deleted successfully. You will be redirected to the login page.</p>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        time.sleep(2)
+                        st.rerun()
+                    else:
+                        st.markdown(f'''
+                        <div class="error-message">
+                            <div class="error-icon">❌</div>
+                            <p>Failed to delete account: {message}</p>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                else:
+                    st.markdown('''
+                    <div class="error-message">
+                        <div class="error-icon">❌</div>
+                        <p>Username doesn't match. Please try again.</p>
+                    </div>
+                    ''', unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)  # Close button-container
+
+    st.markdown('</div>', unsafe_allow_html=True)  # Close delete-actions
+    st.markdown('</div>', unsafe_allow_html=True)  # Close profile-container
 
 
 # Default exercises database
@@ -450,27 +690,60 @@ def main_app():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.sidebar.button("Logout", use_container_width=True):
-        st.session_state.authenticated = False
-        st.session_state.user_data = None
-        st.rerun()
+    col1, col2 = st.sidebar.columns(2)
+
+    with col2:
+        if st.button("Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.user_data = None
+            st.rerun()
 
     st.sidebar.markdown("---")
 
     # Navigation
-    page = st.sidebar.selectbox(
+    page = st.sidebar.radio(
         "🧭 Navigate",
-        ["🏠 Dashboard", "👁️ View Workouts", "📊 Log Workout", "📅 Attendance",
+        ["👤 Profile", "🏠 Dashboard", "👁️ View Workouts", "📊 Log Workout", "📅 Attendance",
          "🥗 Nutrition", "📏 Body Metrics", "📈 Progress", "🎯 Goals",
-         "📋 Workout Plans", "⏱️ Timer", "📊 Export Data", "🗑️ Manage Data"]
+         "📋 Workout Plans", "⏱️ Timer", "📊 Export Data", "🗑️ Manage Data"],
+        label_visibility="collapsed",  # Optional: hide label text
+        index=1  # Default selection
     )
+
+    # Check if profile page is requested
+    if page == "👤 Profile":
+        def load_css():
+            with open("profile.css", "r", encoding="utf-8") as f:
+                st.markdown(f"<style>{f.read()}</style>",
+                            unsafe_allow_html=True)
+        load_css()
+        show_profile_page(st.session_state.user_data, db)
+        return
 
     # Dashboard
     if page == "🏠 Dashboard":
-        st.markdown(
-            f'<h1 class="page-title">Welcome back, {full_name.split()[0]}!</h1>', unsafe_allow_html=True)
 
-        # Quick stats with enhanced styling
+        def load_css():
+            with open("dashboard.css", "r", encoding="utf-8") as f:
+                st.markdown(f"<style>{f.read()}</style>",
+                            unsafe_allow_html=True)
+
+        load_css()
+        # Main dashboard container with gradient background
+        st.markdown(
+            f'''
+            <div class="dashboard-container">
+                <div class="welcome-section">
+                    <h1 class="welcome-title">Welcome back, {full_name.split()[0]}!</h1>
+                    <p class="welcome-subtitle">Here's your fitness journey overview</p>
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+
+        # Enhanced metrics section with glassmorphism effect
+        st.markdown('<div class="metrics-container">', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
 
         # Get recent data
@@ -481,34 +754,76 @@ def main_app():
         with col1:
             attended_days = sum(
                 1 for x in recent_attendance if x.get('attended', False))
+            attendance_rate = attended_days/30*100 if recent_attendance else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-icon">🏋️</div>
-                <div class="metric-value">{attended_days}</div>
-                <div class="metric-label">Gym Days (30d)</div>
-                <div class="metric-delta">{attended_days/30*100:.1f}% attendance</div>
+            <div class="metric-card gym-card">
+                <div class="metric-header">
+                    <div class="metric-icon-container">
+                        <div class="metric-icon">🏋️</div>
+                    </div>
+                    <div class="metric-trend positive">↗</div>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">{attended_days}</div>
+                    <div class="metric-label">Gym Days</div>
+                    <div class="metric-period">Last 30 days</div>
+                    <div class="metric-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {attendance_rate}%"></div>
+                        </div>
+                        <div class="metric-delta">{attendance_rate:.1f}% attendance</div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
         with col2:
             protein_days = sum(
                 1 for x in recent_nutrition if x.get('protein_intake', 0) > 0)
+            protein_rate = protein_days/30*100 if recent_nutrition else 0
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-icon">🥩</div>
-                <div class="metric-value">{protein_days}</div>
-                <div class="metric-label">Protein Days (30d)</div>
-                <div class="metric-delta">{protein_days/30*100:.1f}% consistency</div>
+            <div class="metric-card protein-card">
+                <div class="metric-header">
+                    <div class="metric-icon-container">
+                        <div class="metric-icon">🥩</div>
+                    </div>
+                    <div class="metric-trend positive">↗</div>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">{protein_days}</div>
+                    <div class="metric-label">Protein Days</div>
+                    <div class="metric-period">Last 30 days</div>
+                    <div class="metric-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {protein_rate}%"></div>
+                        </div>
+                        <div class="metric-delta">{protein_rate:.1f}% consistency</div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
         with col3:
+            workout_count = len(recent_workouts)
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-icon">💪</div>
-                <div class="metric-value">{len(recent_workouts)}</div>
-                <div class="metric-label">Total Workouts (30d)</div>
-                <div class="metric-delta">Keep it up!</div>
+            <div class="metric-card workout-card">
+                <div class="metric-header">
+                    <div class="metric-icon-container">
+                        <div class="metric-icon">💪</div>
+                    </div>
+                    <div class="metric-trend positive">↗</div>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">{workout_count}</div>
+                    <div class="metric-label">Total Workouts</div>
+                    <div class="metric-period">Last 30 days</div>
+                    <div class="metric-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {min(workout_count*3.33, 100)}%"></div>
+                        </div>
+                        <div class="metric-delta">Keep it up! 🔥</div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -519,62 +834,153 @@ def main_app():
                     current_streak += 1
                 else:
                     break
+
+            streak_level = "🔥" if current_streak > 7 else "⚡" if current_streak > 3 else "💫"
             st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-icon">🔥</div>
-                <div class="metric-value">{current_streak}</div>
-                <div class="metric-label">Current Streak</div>
-                <div class="metric-delta">days strong</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # Quick log section
-        st.markdown('<h2 class="section-title"> Quick Log</h2>',
-                    unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown('<div class="quick-log-card">', unsafe_allow_html=True)
-            st.write("**🏃 Today's Attendance**")
-            today = date.today().strftime("%Y-%m-%d")
-            attended_today = st.radio(
-                "Gym today?", ["Not logged", "✅ Yes", "❌ No"], key="quick_attendance")
-            if attended_today != "Not logged":
-                if st.button("📝 Log Attendance", use_container_width=True):
-                    db.log_attendance(today, attended_today == "✅ Yes")
-                    st.success("✅ Attendance logged!")
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with col2:
-            st.markdown('<div class="quick-log-card">', unsafe_allow_html=True)
-            st.write("**🥩 Today's Protein**")
-            protein_amount = st.number_input(
-                "Protein intake (g)", min_value=0, max_value=300, step=10, key="quick_protein")
-            if st.button("📝 Log Protein", use_container_width=True):
-                db.log_nutrition(today, protein_amount)
-                st.success("✅ Protein logged!")
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # Recent activity
-        st.markdown('<h2 class="section-title">  Recent Activity</h2>',
-                    unsafe_allow_html=True)
-        if recent_workouts:
-            latest_workout = recent_workouts[0]
-            st.markdown(f"""
-            <div class="activity-card">
-                <div class="activity-icon">💪</div>
-                <div class="activity-content">
-                    <div class="activity-title">Last Workout</div>
-                    <div class="activity-details">{latest_workout['date']} • {len(latest_workout.get('exercises', []))} exercises</div>
+            <div class="metric-card streak-card">
+                <div class="metric-header">
+                    <div class="metric-icon-container">
+                        <div class="metric-icon">{streak_level}</div>
+                    </div>
+                    <div class="metric-trend {"positive" if current_streak > 0 else "neutral"}">{"↗" if current_streak > 0 else "→"}</div>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">{current_streak}</div>
+                    <div class="metric-label">Current Streak</div>
+                    <div class="metric-period">Days strong</div>
+                    <div class="metric-progress">
+                        <div class="streak-indicator">{"🔥" * min(current_streak, 10)}</div>
+                        <div class="metric-delta">{"Amazing!" if current_streak > 7 else "Good job!" if current_streak > 3 else "Keep going!"}</div>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-        # Weekly overview chart
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Enhanced quick log section
+        st.markdown('''
+        <div class="section-divider"></div>
+        <div class="section-header">
+            <h2 class="section-title">⚡ Quick Log</h2>
+        </div>
+        ''', unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown('''
+            <div class="quick-log-card attendance-log">
+                <div class="log-header">
+                    <div class="log-icon">🏃</div>
+                    <div class="log-title">Today's Attendance</div>
+                </div>
+                <div class="log-content">
+            ''', unsafe_allow_html=True)
+
+            today = date.today().strftime("%Y-%m-%d")
+            attended_today = st.radio(
+                "Did you go to the gym today?",
+                ["Not logged", "✅ Yes", "❌ No"],
+                key="quick_attendance",
+                label_visibility="collapsed"
+            )
+
+            if attended_today != "Not logged":
+                if st.button("📝 Log Attendance", use_container_width=True, key="log_att_btn"):
+                    db.log_attendance(today, attended_today == "✅ Yes")
+                    st.success("✅ Attendance logged successfully!")
+                    st.rerun()
+
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        with col2:
+            st.markdown('''
+            <div class="quick-log-card protein-log">
+                <div class="log-header">
+                    <div class="log-icon">🥩</div>
+                    <div class="log-title">Today's Protein</div>
+                </div>
+                <div class="log-content">
+            ''', unsafe_allow_html=True)
+
+            protein_amount = st.number_input(
+                "Protein intake (grams)",
+                min_value=0,
+                max_value=300,
+                step=10,
+                key="quick_protein",
+                label_visibility="collapsed",
+                placeholder="Enter protein amount..."
+            )
+
+            if st.button("📝 Log Protein", use_container_width=True, key="log_protein_btn"):
+                db.log_nutrition(today, protein_amount)
+                st.success("✅ Protein intake logged successfully!")
+                st.rerun()
+
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        # Enhanced recent activity section
+        st.markdown('''
+        <div class="section-divider"></div>
+        <div class="section-header">
+            <h2 class="section-title">📊 Recent Activity</h2>
+        </div>
+        ''', unsafe_allow_html=True)
+
+        if recent_workouts:
+            latest_workout = recent_workouts[0]
+            exercise_count = len(latest_workout.get('exercises', []))
+            st.markdown(f"""
+            <div class="activity-showcase">
+                <div class="activity-card latest-workout">
+                    <div class="activity-header">
+                        <div class="activity-icon-large">💪</div>
+                        <div class="activity-badge">Latest</div>
+                    </div>
+                    <div class="activity-body">
+                        <div class="activity-title">Last Workout Session</div>
+                        <div class="activity-meta">
+                            <span class="activity-date">📅 {latest_workout['date']}</span>
+                            <span class="activity-exercises">🎯 {exercise_count} exercises</span>
+                        </div>
+                        <div class="activity-progress">
+                            <div class="activity-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Exercises</span>
+                                    <span class="stat-value">{exercise_count}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Status</span>
+                                    <span class="stat-value completed">✅ Completed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown('''
+            <div class="activity-showcase">
+                <div class="empty-state">
+                    <div class="empty-icon">💪</div>
+                    <div class="empty-title">No recent workouts</div>
+                    <div class="empty-subtitle">Start logging your workouts to see activity here!</div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+
+        # Enhanced attendance chart
+        st.markdown('''
+        <div class="section-divider"></div>
+        <div class="section-header">
+            <h2 class="section-title">📈 Attendance Trends</h2>
+            <p class="section-subtitle">Your gym attendance over the last 30 days</p>
+        </div>
+        ''', unsafe_allow_html=True)
+
         if recent_attendance:
             df_attendance = pd.DataFrame(recent_attendance)
             df_attendance['date'] = pd.to_datetime(
@@ -583,23 +989,69 @@ def main_app():
             df_attendance['attended'] = df_attendance['attended'].astype(int)
             df_attendance = df_attendance.sort_values('date')
 
+            # Create enhanced chart
             fig = px.line(
                 df_attendance,
                 x='date',
                 y='attended',
-                title='🏋️ Gym Attendance Trend (Last 30 Days)',
-                markers=True
+                title='',
+                markers=True,
+                line_shape='spline'
+            )
+
+            # Enhanced styling for the chart
+            fig.update_traces(
+                line=dict(color='#6366f1', width=3),
+                marker=dict(
+                    size=8,
+                    color='#6366f1',
+                    line=dict(width=2, color='white')
+                ),
+                fill='tonexty',
+                fillcolor='rgba(99, 102, 241, 0.1)'
             )
 
             fig.update_layout(
-                xaxis_title="Date",
-                yaxis_title="Attendance (1 = Yes, 0 = No)",
-                font=dict(size=14),
-                height=400,
-                margin=dict(t=50, b=40, l=20, r=20),
+                xaxis_title="",
+                yaxis_title="",
+                font=dict(size=12, family="Inter, sans-serif"),
+                height=350,
+                margin=dict(t=20, b=40, l=20, r=20),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    showline=False,
+                    zeroline=False
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    showline=False,
+                    zeroline=False,
+                    tickmode='array',
+                    tickvals=[0, 1],
+                    ticktext=['Missed', 'Attended']
+                )
             )
 
+            st.markdown('<div class="chart-container">',
+                        unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('''
+            <div class="chart-container">
+                <div class="empty-chart">
+                    <div class="empty-icon">📊</div>
+                    <div class="empty-title">No attendance data yet</div>
+                    <div class="empty-subtitle">Start logging your gym visits to see trends!</div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
 
     elif page == "👁️ View Workouts":
         st.markdown('<h1 class="page-title">Past Workouts</h1>',
@@ -769,85 +1221,6 @@ def main_app():
             </div>
             """, unsafe_allow_html=True)
 
-    # Data Management Page
-    elif page == "🗑️ Manage Data":
-        st.markdown('<h1 class="page-title">Manage Your Data</h1>',
-                    unsafe_allow_html=True)
-
-        tab1, tab2, tab3, tab4 = st.tabs(
-            ["🏋️ Workouts", "📅 Attendance", "🥗 Nutrition", "📏 Body Metrics"])
-
-        with tab1:
-            st.markdown("### Delete Workout Records")
-            workouts = db.get_recent_workouts(90)
-            if workouts:
-                for workout in workouts:
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.write(
-                            f"**{workout['date']}** - {workout.get('type', 'N/A')} ({len(workout.get('exercises', []))} exercises)")
-                    with col2:
-                        if st.button("🗑️", key=f"del_workout_{workout['_id']}"):
-                            db.delete_workout(workout['_id'])
-                            st.success("Workout deleted!")
-                            st.rerun()
-            else:
-                st.info("No workout records found")
-
-        with tab2:
-            st.markdown("### Delete Attendance Records")
-            attendance = db.get_attendance_data(90)
-            if attendance:
-                for record in attendance:
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        status = "✅ Attended" if record.get(
-                            'attended') else "❌ Missed"
-                        st.write(f"**{record['date']}** - {status}")
-                    with col2:
-                        if st.button("🗑️", key=f"del_attendance_{record['date']}"):
-                            db.delete_attendance(record['date'])
-                            st.success("Attendance record deleted!")
-                            st.rerun()
-            else:
-                st.info("No attendance records found")
-
-        with tab3:
-            st.markdown("### Delete Nutrition Records")
-            nutrition = db.get_nutrition_data(90)
-            if nutrition:
-                for record in nutrition:
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.write(
-                            f"**{record['date']}** - {record.get('protein_intake', 0)}g protein")
-                    with col2:
-                        if st.button("🗑️", key=f"del_nutrition_{record['date']}"):
-                            db.delete_nutrition(record['date'])
-                            st.success("Nutrition record deleted!")
-                            st.rerun()
-            else:
-                st.info("No nutrition records found")
-
-        with tab4:
-            st.markdown("### Delete Body Metrics Records")
-            metrics = db.get_body_metrics_data(90)
-            if metrics:
-                for record in metrics:
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        weight_text = f"{record.get('weight', 'N/A')}kg" if record.get(
-                            'weight') else "No weight"
-                        st.write(f"**{record['date']}** - {weight_text}")
-                    with col2:
-                        if st.button("🗑️", key=f"del_metrics_{record['date']}"):
-                            db.delete_body_metrics(record['date'])
-                            st.success("Body metrics deleted!")
-                            st.rerun()
-            else:
-                st.info("No body metrics records found")
-
-    # Log Workout Page
     elif page == "📊 Log Workout":
         st.markdown('<h1 class="page-title">📊 Log Workout</h1>',
                     unsafe_allow_html=True)
@@ -1402,148 +1775,694 @@ def main_app():
                 st.success("✅ Workout saved!")
                 st.rerun()
 
-    # Attendance Page
-    elif page == "📅 Attendance":
-        st.markdown('<h1 class="page-title">📅 Gym Attendance</h1>',
+    # Data Management Page
+    elif page == "🗑️ Manage Data":
+        st.markdown('<h1 class="page-title">Manage Your Data</h1>',
                     unsafe_allow_html=True)
 
-        col1, col2 = st.columns([1, 2])
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["🏋️ Workouts", "📅 Attendance", "🥗 Nutrition", "📏 Body Metrics"])
 
-        with col1:
-            st.markdown("### Log Attendance")
-            attendance_date = st.date_input("Date", value=date.today())
-            attended = st.selectbox("Attended Gym?", ["Yes", "No"])
-            notes = st.text_area(
-                "Notes", placeholder="Any specific reason for missing?")
-
-            if st.button("📝 Log Attendance", use_container_width=True):
-                db.log_attendance(
-                    attendance_date.strftime("%Y-%m-%d"),
-                    attended == "Yes",
-                    notes
-                )
-                st.success("✅ Attendance logged!")
-                st.rerun()
-
-        with col2:
-            st.markdown("### Attendance History")
-            attendance_data = db.get_attendance_data(30)
-
-            if attendance_data:
-                df = pd.DataFrame(attendance_data)
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date', ascending=False)
-
-                # Attendance chart
-                fig = px.scatter(df, x='date', y='attended',
-                                 title='Gym Attendance (Last 30 Days)',
-                                 color='attended',
-                                 color_discrete_map={True: '#10b981', False: '#ef4444'})
-                fig.update_layout(
-                    yaxis=dict(tickvals=[0, 1], ticktext=['No', 'Yes']),
-                    showlegend=False
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Attendance stats
-                total_days = len(df)
-                attended_days = df['attended'].sum()
-                attendance_rate = (attended_days / total_days) * \
-                    100 if total_days > 0 else 0
-
-                st.markdown(f"""
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">{attended_days}</div>
-                        <div class="stat-label">Days Attended</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{total_days - attended_days}</div>
-                        <div class="stat-label">Days Missed</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{attendance_rate:.1f}%</div>
-                        <div class="stat-label">Attendance Rate</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+        with tab1:
+            st.markdown("### Delete Workout Records")
+            workouts = db.get_recent_workouts(90)
+            if workouts:
+                for workout in workouts:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(
+                            f"**{workout['date']}** - {workout.get('type', 'N/A')} ({len(workout.get('exercises', []))} exercises)")
+                    with col2:
+                        if st.button("🗑️", key=f"del_workout_{workout['_id']}"):
+                            db.delete_workout(workout['_id'])
+                            st.success("Workout deleted!")
+                            st.rerun()
             else:
-                st.info("No attendance data available")
+                st.info("No workout records found")
+
+        with tab2:
+            st.markdown("### Delete Attendance Records")
+            attendance = db.get_attendance_data(90)
+            if attendance:
+                for record in attendance:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        status = "✅ Attended" if record.get(
+                            'attended') else "❌ Missed"
+                        st.write(f"**{record['date']}** - {status}")
+                    with col2:
+                        if st.button("🗑️", key=f"del_attendance_{record['date']}"):
+                            db.delete_attendance(record['date'])
+                            st.success("Attendance record deleted!")
+                            st.rerun()
+            else:
+                st.info("No attendance records found")
+
+        with tab3:
+            st.markdown("### Delete Nutrition Records")
+            nutrition = db.get_nutrition_data(90)
+            if nutrition:
+                for record in nutrition:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(
+                            f"**{record['date']}** - {record.get('protein_intake', 0)}g protein")
+                    with col2:
+                        if st.button("🗑️", key=f"del_nutrition_{record['date']}"):
+                            db.delete_nutrition(record['date'])
+                            st.success("Nutrition record deleted!")
+                            st.rerun()
+            else:
+                st.info("No nutrition records found")
+
+        with tab4:
+            st.markdown("### Delete Body Metrics Records")
+            metrics = db.get_body_metrics_data(90)
+            if metrics:
+                for record in metrics:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        weight_text = f"{record.get('weight', 'N/A')}kg" if record.get(
+                            'weight') else "No weight"
+                        st.write(f"**{record['date']}** - {weight_text}")
+                    with col2:
+                        if st.button("🗑️", key=f"del_metrics_{record['date']}"):
+                            db.delete_body_metrics(record['date'])
+                            st.success("Body metrics deleted!")
+                            st.rerun()
+            else:
+                st.info("No body metrics records found")
+
+    # Attendance Page
+    elif page == "📅 Attendance":
+        # Load custom CSS
+        try:
+            with open('attendance.css') as f:
+                st.markdown(f'<style>{f.read()}</style>',
+                            unsafe_allow_html=True)
+        except:
+            # Fallback if CSS file not found
+            st.markdown("""
+            <style>
+            .main-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        padding: 2rem; border-radius: 20px; margin-bottom: 2rem; color: white; }
+            .stats-card { background: white; padding: 1.5rem; border-radius: 12px; 
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 0.5rem; text-align: center; }
+            </style>
+            """, unsafe_allow_html=True)
+
+        # Page Header
+        st.markdown("""
+        <div class="main-header">
+            <h1 style="margin:0; font-size: 2.5rem;">📅 Gym Attendance</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Track your fitness journey and maintain consistency</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Create columns with proper spacing
+        # col1, col2 = st.columns([1, 2], gap="large")
+
+        # with col1:
+        # Form section with container
+        with st.container():
+            st.markdown("### 🏋️ Log Today's Attendance")
+
+            # Date input
+            attendance_date = st.date_input(
+                "📅 Date",
+                value=date.today(),
+                help="Select the date for attendance logging"
+            )
+
+            # Attendance selector
+            attended = st.selectbox(
+                "💪 Did you attend the gym?",
+                ["Yes", "No"],
+                help="Select whether you attended the gym on this date"
+            )
+
+            # Notes input
+            notes = st.text_area(
+                "📝 Notes (Optional)",
+                placeholder="Any specific reason for missing? What did you accomplish?",
+                height=100,
+                help="Add any additional notes about your gym session"
+            )
+
+            # Submit button with styling
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Center the button
+            col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+            with col_btn2:
+                if st.button("✨ Log Attendance", type="primary", use_container_width=True):
+                    try:
+                        db.log_attendance(
+                            attendance_date.strftime("%Y-%m-%d"),
+                            attended == "Yes",
+                            notes
+                        )
+                        st.success("🎉 Attendance logged successfully!")
+                        st.balloons()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error logging attendance: {str(e)}")
+
+        # with col2:
+            # History section
+        st.markdown("### 📊 Your Fitness Journey")
+
+        try:
+            attendance_data = db.get_attendance_data(30)
+        except Exception as e:
+            st.error(f"Error fetching attendance data: {str(e)}")
+            attendance_data = None
+
+        if attendance_data:
+            df = pd.DataFrame(attendance_data)
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date', ascending=False)
+
+            # Create the attendance chart
+            fig = px.scatter(
+                df,
+                x='date',
+                y='attended',
+                title='Your Attendance Pattern (Last 30 Days)',
+                color='attended',
+                color_discrete_map={True: '#22c55e', False: '#ef4444'},
+                height=400
+            )
+
+            # Enhance chart styling
+            fig.update_traces(
+                marker=dict(size=12, line=dict(width=2, color='white')),
+                hovertemplate="<b>%{x|%B %d, %Y}</b><br>" +
+                "Status: %{customdata}<br>" +
+                "<extra></extra>",
+                customdata=[
+                    'Attended' if x else 'Missed' for x in df['attended']]
+            )
+
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#374151'),
+                title=dict(
+                    font=dict(size=18, color='#1f2937'),
+                    x=0.5
+                ),
+                yaxis=dict(
+                    tickvals=[0, 1],
+                    ticktext=['Missed', 'Attended'],
+                    gridcolor='#e5e7eb',
+                    title=''
+                ),
+                xaxis=dict(
+                    gridcolor='#e5e7eb',
+                    title='Date'
+                ),
+                showlegend=False,
+                margin=dict(l=20, r=20, t=50, b=40)
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Calculate statistics
+            total_days = len(df)
+            attended_days = df['attended'].sum()
+            missed_days = total_days - attended_days
+            attendance_rate = (attended_days / total_days) * \
+                100 if total_days > 0 else 0
+
+            # Calculate current streak
+            current_streak = 0
+            for _, row in df.iterrows():
+                if row['attended']:
+                    current_streak += 1
+                else:
+                    break
+
+            # Display stats using Streamlit metrics
+            st.markdown("#### 📈 Your Statistics")
+
+            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+
+            with metric_col1:
+                st.metric(
+                    label="🎯 Days Attended",
+                    value=attended_days,
+                    delta=f"{attendance_rate:.1f}% success rate"
+                )
+
+            with metric_col2:
+                st.metric(
+                    label="😴 Days Missed",
+                    value=missed_days,
+                    delta=f"{100-attendance_rate:.1f}% missed"
+                )
+
+            with metric_col3:
+                st.metric(
+                    label="📊 Success Rate",
+                    value=f"{attendance_rate:.1f}%",
+                    delta="Last 30 days"
+                )
+
+            with metric_col4:
+                st.metric(
+                    label="🔥 Current Streak",
+                    value=current_streak,
+                    delta="Consecutive days"
+                )
+
+            # Recent activity section
+            st.markdown("#### 🕒 Recent Activity")
+
+            recent_entries = df.head(10)
+
+            # Create tabs for better organization
+            tab1, tab2 = st.tabs(["📋 Activity List", "📅 Calendar View"])
+
+            with tab1:
+                for i, (_, row) in enumerate(recent_entries.iterrows()):
+                    date_str = row['date'].strftime("%B %d, %Y")
+                    status = "Attended" if row['attended'] else "Missed"
+                    status_emoji = "✅" if row['attended'] else "❌"
+
+                    # Create expandable row for each entry
+                    with st.expander(f"{status_emoji} {date_str} - {status}", expanded=False):
+                        col_status, col_notes = st.columns([1, 2])
+
+                        with col_status:
+                            if row['attended']:
+                                st.success("Attended Gym")
+                            else:
+                                st.error("Missed Gym")
+
+                        with col_notes:
+                            # Show notes if available (you may need to add this to your data)
+                            if hasattr(row, 'notes') and row.get('notes'):
+                                st.write(f"**Notes:** {row['notes']}")
+                            else:
+                                st.write("*No notes recorded*")
+
+            with tab2:
+                # Create a simple calendar view using a dataframe
+                calendar_df = df.copy()
+                calendar_df['Status'] = calendar_df['attended'].map(
+                    {True: '✅ Attended', False: '❌ Missed'})
+                calendar_df['Date'] = calendar_df['date'].dt.strftime(
+                    '%Y-%m-%d')
+
+                st.dataframe(
+                    calendar_df[['Date', 'Status']].set_index('Date'),
+                    use_container_width=True,
+                    height=300
+                )
+
+            # Progress visualization
+            st.markdown("#### 🎯 Weekly Progress")
+
+            # Group by week and show progress
+            df['week'] = df['date'].dt.isocalendar().week
+            df['year'] = df['date'].dt.year
+
+            weekly_stats = df.groupby(['year', 'week']).agg({
+                'attended': ['sum', 'count']
+            }).reset_index()
+
+            weekly_stats.columns = ['year', 'week',
+                                    'attended_days', 'total_days']
+            weekly_stats['attendance_rate'] = (
+                weekly_stats['attended_days'] / weekly_stats['total_days'] * 100).round(1)
+
+            if len(weekly_stats) > 0:
+                fig_weekly = px.bar(
+                    weekly_stats.tail(8),  # Last 8 weeks
+                    x='week',
+                    y='attendance_rate',
+                    title='Weekly Attendance Rate (%)',
+                    color='attendance_rate',
+                    color_continuous_scale='RdYlGn',
+                    height=300
+                )
+
+                fig_weekly.update_layout(
+                    showlegend=False,
+                    xaxis_title="Week Number",
+                    yaxis_title="Attendance Rate (%)"
+                )
+
+                st.plotly_chart(fig_weekly, use_container_width=True)
+
+        else:
+            # Empty state
+            st.info("📊 No attendance data available yet")
+
+            # Motivational content for new users
+            st.markdown("""
+                ### 🚀 Start Your Fitness Journey!
+                
+                Welcome to your attendance tracker! Here's what you can expect:
+                
+                - 📈 **Track Progress**: Monitor your gym attendance over time
+                - 🔥 **Build Streaks**: See your consecutive attendance days
+                - 📊 **Analyze Patterns**: Understand your workout habits
+                - 🎯 **Stay Motivated**: Visualize your fitness commitment
+                
+                **💪 Ready to begin?** Log your first gym session using the form on the left!
+                """)
+
+            # Add some motivational quotes
+            motivational_quotes = [
+                "The only bad workout is the one that didn't happen.",
+                "Your body can do it. It's your mind you need to convince.",
+                "Don't wish for it, work for it.",
+                "Success is what comes after you stop making excuses.",
+                "The groundwork for all happiness is good health."
+            ]
+
+            import random
+            quote = random.choice(motivational_quotes)
+            st.info(f"💭 **Daily Motivation:** {quote}")
+
+        # Footer with additional tips
+        st.markdown("---")
+
+        with st.expander("💡 Tips for Consistent Gym Attendance"):
+            tip_col1, tip_col2 = st.columns(2)
+
+            with tip_col1:
+                st.markdown("""
+                **🎯 Setting Goals:**
+                - Start with realistic targets
+                - Aim for 3-4 days per week initially
+                - Track your progress regularly
+                - Celebrate small wins
+                """)
+
+            with tip_col2:
+                st.markdown("""
+                **🔥 Building Habits:**
+                - Schedule gym time like appointments
+                - Prepare gym clothes the night before
+                - Find a workout buddy
+                - Mix up your routine to stay engaged
+                """)
 
     # Nutrition Page
     elif page == "🥗 Nutrition":
-        st.markdown('<h1 class="page-title">🥗 Nutrition Tracking</h1>',
-                    unsafe_allow_html=True)
+        
+        try:
+            # Load custom CSS
+            with open("nutrition_styles.css", "r") as f:
+                st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.warning("CSS file not found. Using default styling.")
 
-        col1, col2 = st.columns([1, 2])
+        # Page Header with gradient background
+        st.markdown("""
+        <div class="nutrition-header">
+            <div class="header-content">
+                <h1 class="page-title">
+                    Nutrition Dashboard
+                </h1>
+                <p class="page-subtitle">Track your daily nutrition and build healthy habits</p>
+            </div>
+            <div class="header-pattern"></div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        with col1:
-            st.markdown("### Log Nutrition")
-            nutrition_date = st.date_input("Date", value=date.today())
+        # Create tabs instead of columns
+        tab1, tab2 = st.tabs(["📝 Log Nutrition", "📊 Analytics & History"])
+        
+        with tab1:
+            # Nutrition logging card
+            st.markdown("""
+            <div class="nutrition-card log-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📝</span>
+                        Log Your Nutrition
+                    </h2>
+                </div>
+                <div class="card-content">
+            """, unsafe_allow_html=True)
+
+            nutrition_date = st.date_input(
+                "📅 Date",
+                value=date.today(),
+                help="Select the date for your nutrition log"
+            )
+
+            # Protein intake with visual feedback
             protein_intake = st.number_input(
-                "Protein Intake (g)", min_value=0, max_value=500, step=5)
+                "🥩 Protein Intake (g)",
+                min_value=0,
+                max_value=500,
+                step=5,
+                help="Track your daily protein consumption"
+            )
 
-            st.markdown("**Meals**")
+            # Progress bar for protein target
+            protein_target = 150
+            protein_progress = min(protein_intake / protein_target * 100, 100)
+            st.markdown(f"""
+            <div class="protein-progress">
+                <div class="progress-label">
+                    <span>Daily Target Progress</span>
+                    <span class="progress-value">{protein_intake}g / {protein_target}g</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {protein_progress}%"></div>
+                </div>
+                <div class="progress-status {'on-track' if protein_progress >= 80 else 'needs-attention'}">
+                    {'🎯 On Track!' if protein_progress >= 80 else '💪 Keep Going!'}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Meals section with enhanced UI
+            st.markdown("""
+            <div class="meals-section">
+                <h3 class="section-title">🍽️ Today's Meals</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
             meals = []
+            meal_icons = ["🌅", "☀️", "🌙"]
+            meal_names = ["Breakfast", "Lunch", "Dinner"]
+
             for i in range(3):
-                meal_name = ["Breakfast", "Lunch", "Dinner"][i]
+                meal_name = meal_names[i]
+                meal_icon = meal_icons[i]
+
+                st.markdown(f"""
+                <div class="meal-input">
+                    <label class="meal-label">
+                        <span class="meal-icon">{meal_icon}</span>
+                        {meal_name}
+                    </label>
+                </div>
+                """, unsafe_allow_html=True)
+
                 meal_desc = st.text_input(
-                    f"{meal_name}", placeholder=f"Describe your {meal_name.lower()}")
+                    f"{meal_name}",
+                    placeholder=f"What did you have for {meal_name.lower()}?",
+                    label_visibility="collapsed",
+                    key=f"meal_{i}"
+                )
                 if meal_desc:
                     meals.append({"meal": meal_name, "description": meal_desc})
 
-            nutrition_notes = st.text_area("Nutrition Notes")
+            # Notes section
+            st.markdown("""
+            <div class="notes-section">
+                <label class="notes-label">
+                    <span class="notes-icon">📋</span>
+                    Additional Notes
+                </label>
+            </div>
+            """, unsafe_allow_html=True)
 
-            if st.button("📝 Log Nutrition", use_container_width=True):
-                db.log_nutrition(
-                    nutrition_date.strftime("%Y-%m-%d"),
-                    protein_intake,
-                    meals,
-                    nutrition_notes
-                )
-                st.success("✅ Nutrition logged!")
-                st.rerun()
+            nutrition_notes = st.text_area(
+                "Notes",
+                placeholder="Any additional notes about your nutrition today...",
+                label_visibility="collapsed",
+                height=80
+            )
 
-        with col2:
-            st.markdown("### Nutrition History")
-            nutrition_data = db.get_nutrition_data(30)
+            # Log button with enhanced styling
+            st.markdown('<div class="button-container">', unsafe_allow_html=True)
+            if st.button("📝 Log Nutrition", use_container_width=True, type="primary"):
+                try:
+                    db.log_nutrition(
+                        nutrition_date.strftime("%Y-%m-%d"),
+                        protein_intake,
+                        meals,
+                        nutrition_notes
+                    )
+                    st.success("✅ Nutrition logged successfully!")
+                    st.balloons()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error logging nutrition: {str(e)}")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            if nutrition_data:
-                df = pd.DataFrame(nutrition_data)
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date')
-
-                # Protein intake chart
-                fig = px.line(df, x='date', y='protein_intake',
-                              title='Daily Protein Intake (Last 30 Days)',
-                              color_discrete_sequence=['#8b5cf6'])
-                fig.add_hline(y=150, line_dash="dash", line_color="red",
-                              annotation_text="Target: 150g")
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Nutrition stats
-                avg_protein = df['protein_intake'].mean()
-                max_protein = df['protein_intake'].max()
-                days_above_target = (df['protein_intake'] >= 150).sum()
-
-                st.markdown(f"""
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">{avg_protein:.1f}g</div>
-                        <div class="stat-label">Avg Daily Protein</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{max_protein:.0f}g</div>
-                        <div class="stat-label">Highest Day</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{days_above_target}</div>
-                        <div class="stat-label">Days Above Target</div>
-                    </div>
+            st.markdown("""
                 </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.info("No nutrition data available")
+            </div>
+            """, unsafe_allow_html=True)
+
+        with tab2:
+            # Analytics and history card
+            st.markdown("""
+            <div class="nutrition-card analytics-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="card-icon">📊</span>
+                        Nutrition Analytics
+                    </h2>
+                </div>
+                <div class="card-content">
+            """, unsafe_allow_html=True)
+
+            try:
+                nutrition_data = db.get_nutrition_data(30)
+
+                if nutrition_data:
+                    df = pd.DataFrame(nutrition_data)
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.sort_values('date')
+
+                    # Enhanced protein intake chart
+                    fig = px.line(
+                        df,
+                        x='date',
+                        y='protein_intake',
+                        title='Daily Protein Intake - Last 30 Days',
+                        color_discrete_sequence=['#6366f1']
+                    )
+
+                    # Styling the chart
+                    fig.update_traces(
+                        line=dict(width=3),
+                        mode='lines+markers',
+                        marker=dict(size=6, color='#6366f1',
+                                    line=dict(width=2, color='white'))
+                    )
+
+                    fig.add_hline(
+                        y=150,
+                        line_dash="dash",
+                        line_color="#ef4444",
+                        annotation_text="Target: 150g",
+                        annotation_position="top right"
+                    )
+
+                    fig.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(family="Inter, sans-serif"),
+                        title=dict(font=dict(size=16, color='#1f2937')),
+                        xaxis=dict(
+                            gridcolor='rgba(156, 163, 175, 0.2)',
+                            showgrid=True
+                        ),
+                        yaxis=dict(
+                            gridcolor='rgba(156, 163, 175, 0.2)',
+                            showgrid=True
+                        )
+                    )
+
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    # Enhanced nutrition stats
+                    avg_protein = df['protein_intake'].mean()
+                    max_protein = df['protein_intake'].max()
+                    days_above_target = (df['protein_intake'] >= 150).sum()
+                    total_days = len(df)
+                    success_rate = (days_above_target / total_days * 100) if total_days > 0 else 0
+
+                    st.markdown(f"""
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-content">
+                                <div class="stat-value">{avg_protein:.1f}g</div>
+                                <div class="stat-label">Average Daily</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🏆</div>
+                            <div class="stat-content">
+                                <div class="stat-value">{max_protein:.1f}g</div>
+                                <div class="stat-label">Personal Best</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🎯</div>
+                            <div class="stat-content">
+                                <div class="stat-value">{days_above_target}/{total_days}</div>
+                                <div class="stat-label">Target Days</div>
+                            </div>
+                        </div>
+                        <div class="stat-card success-rate">
+                            <div class="stat-icon">✨</div>
+                            <div class="stat-content">
+                                <div class="stat-value">{success_rate:.0f}%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Recent meals section
+                    if len(df) > 0:
+                        st.markdown("""
+                        <div class="recent-meals">
+                            <h3 class="section-title">🍽️ Recent Meals</h3>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # Show last 5 days of meals
+                        recent_data = df.tail(5)
+                        for _, row in recent_data.iterrows():
+                            date_str = row['date'].strftime('%B %d, %Y')
+                            st.markdown(f"""
+                            <div class="meal-history-item">
+                                <div class="meal-date">📅 {date_str}</div>
+                                <div class="meal-protein">🥩 {row['protein_intake']}g protein</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                else:
+                    # Empty state with call to action
+                    st.markdown("""
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <h3 class="empty-title">No Data Yet</h3>
+                        <p class="empty-message">Start logging your nutrition to see beautiful analytics and track your progress!</p>
+                        <div class="empty-tips">
+                            <h4>💡 Quick Tips:</h4>
+                            <ul>
+                                <li>Log your meals daily for better insights</li>
+                                <li>Aim for 150g of protein per day</li>
+                                <li>Track consistently for best results</li>
+                            </ul>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"Error loading nutrition data: {str(e)}")
+                st.info("Please check your database connection and make sure the get_nutrition_data method is properly implemented.")
+
+            st.markdown("""
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Body Metrics Page
     elif page == "📏 Body Metrics":

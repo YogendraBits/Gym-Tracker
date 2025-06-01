@@ -1,0 +1,434 @@
+/* Modern Nutrition Tracker - Clean & User-Friendly */
+
+/* Import Clean Typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Simplified Design System */
+:root {
+    /* Primary Colors - Blue Theme */
+    --primary: #2563eb;
+    --primary-light: #3b82f6;
+    --primary-dark: #7290e5;
+    --primary-bg: #eff6ff;
+    
+    /* Neutral Colors */
+    --white: #ffffff;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    
+    /* Status Colors */
+    --success: #10b981;
+    --success-bg: #ecfdf5;
+    --warning: #f59e0b;
+    --warning-bg: #fffbeb;
+    --error: #ef4444;
+    --error-bg: #fef2f2;
+    
+    /* Spacing Scale */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    
+    /* Border Radius */
+    --radius: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    
+    /* Transitions */
+    --transition: 0.2s ease-in-out;
+}
+
+/* Reset & Base Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+    color: var(--gray-700);
+    background-color: var(--gray-50);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Streamlit Container */
+.main .block-container {
+    max-width: 1200px !important;
+    padding: var(--space-xl) var(--space-md) !important;
+}
+
+/* Header Section */
+.nutrition-header {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--primary-dark) 100%);
+    color: rgb(255, 255, 255);
+    padding: var(--space-2xl);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-xl);
+    text-align: center;
+}
+
+.page-title {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    margin: 0 0 var(--space-sm) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    color: rgb(255, 255, 255);
+}
+
+.title-icon {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    color: rgb(255, 255, 255);
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+/* Card System */
+.nutrition-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-200);
+    margin-bottom: var(--space-xl);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.nutrition-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background: var(--gray-50);
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--gray-900);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.card-icon {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.card-content {
+    padding: var(--space-lg);
+}
+
+/* Form Elements */
+.stNumberInput > div > div > input,
+.stDateInput > div > div > input,
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    border: 1px solid var(--gray-300) !important;
+    border-radius: var(--radius) !important;
+    padding: var(--space-md) !important;
+    font-size: 0.95rem !important;
+    transition: var(--transition) !important;
+    background: var(--white) !important;
+    color: var(--gray-700) !important;
+}
+
+.stNumberInput > div > div > input:focus,
+.stDateInput > div > div > input:focus,
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none !important;
+}
+
+/* Labels */
+.stNumberInput > label,
+.stDateInput > label,
+.stTextInput > label,
+.stTextArea > label {
+    font-weight: 500 !important;
+    color: var(--gray-700) !important;
+    margin-bottom: var(--space-xs) !important;
+}
+
+/* Progress Section */
+.protein-progress {
+    background: var(--primary-bg);
+    border-radius: var(--radius);
+    padding: var(--space-lg);
+    margin: var(--space-lg) 0;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.progress-value {
+    color: var(--primary);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: var(--space-md);
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: var(--radius);
+    transition: width 0.5s ease;
+}
+
+.progress-status {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+}
+
+.progress-status.on-track {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.progress-status.needs-attention {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Section Titles */
+.section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: var(--space-xl) 0 var(--space-md) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Meal Input */
+.meal-input {
+    margin-bottom: var(--space-lg);
+}
+
+.meal-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    transition: var(--transition);
+}
+
+.meal-label:hover {
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+.meal-icon {
+    color: var(--primary);
+}
+
+/* Button Styling */
+.stButton > button {
+    background: var(--primary) !important;
+    border: none !important;
+    border-radius: var(--radius) !important;
+    padding: var(--space-md) var(--space-xl) !important;
+    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    transition: var(--transition) !important;
+    color: white !important;
+}
+
+.stButton > button:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* Statistics */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-lg);
+    margin: var(--space-xl) 0;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    text-align: center;
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: var(--space-sm);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+    line-height: 1;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    margin-top: var(--space-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Meal History */
+.meal-history-item {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-left: 3px solid var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+    border: 1px solid var(--gray-200);
+}
+
+.meal-history-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+
+.meal-date {
+    font-size: 0.9rem;
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+.meal-protein {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--gray-500);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-md);
+    opacity: 0.7;
+}
+
+.empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: var(--space-sm);
+}
+
+.empty-message {
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+}
+
+/* Success Messages */
+.stSuccess {
+    background: var(--success-bg) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+    border-radius: var(--radius) !important;
+    color: var(--success) !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: var(--space-md) var(--space-sm) !important;
+    }
+    
+    .page-title {
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+    
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .nutrition-header,
+    .card-content,
+    .card-header {
+        padding: var(--space-md);
+    }
+    
+    .meal-history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+}
