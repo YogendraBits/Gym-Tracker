@@ -248,7 +248,6 @@ class GymDatabase:
 
     # Add these methods to the GymDatabase class
 
-
     def save_goal(self, goal_data):
         """Save a new goal to the database"""
         if self.db is not None:
@@ -258,7 +257,6 @@ class GymDatabase:
             goal_data["progress_logs"] = []
             return self.goals.insert_one(goal_data)
 
-
     def get_goals(self, status=None):
         """Get all goals for the user, optionally filtered by status"""
         if self.db is not None:
@@ -267,7 +265,6 @@ class GymDatabase:
                 query["status"] = status
             return list(self.goals.find(query).sort("created_at", -1))
         return []
-
 
     def update_goal_progress(self, goal_id, progress_data):
         """Update goal progress"""
@@ -291,7 +288,6 @@ class GymDatabase:
                 {"$set": {"current_progress": progress_data["progress_value"]}}
             )
 
-
     def update_goal_status(self, goal_id, status):
         """Update goal status (active, completed, paused)"""
         if self.db is not None:
@@ -303,12 +299,10 @@ class GymDatabase:
                 {"$set": update_data}
             )
 
-
     def delete_goal(self, goal_id):
         """Delete a goal"""
         if self.db is not None:
             return self.goals.delete_one(self._add_user_filter({"_id": goal_id}))
-
 
     def get_goal_statistics(self):
         """Get goal statistics for the user"""
@@ -387,7 +381,7 @@ class GymDatabase:
 
         # Tabs for different sections
         tab1, tab2, tab3, tab4 = st.tabs(
-            ["📋 All Goals", "➕ Add Goal", "📊 Progress", "📈 Analytics"])
+            ["All Goals", "Add Goal", "Progress", "Analytics"])
 
         with tab1:
             db.show_all_goals()
@@ -401,10 +395,9 @@ class GymDatabase:
         with tab4:
             db.show_goal_analytics()
 
-
     def show_all_goals(db):
         """Display all goals with management options"""
-        st.markdown("### 📋 Your Goals")
+        st.markdown("### Your Goals")
 
         # Filter options
         col1, col2 = st.columns(2)
@@ -430,12 +423,12 @@ class GymDatabase:
             goals = sorted(goals, key=lambda x: x.get(
                 "created_at", datetime.now()))
         elif sort_option == "Target Date":
-            goals = sorted(goals, key=lambda x: x.get("target_date", "9999-12-31"))
+            goals = sorted(goals, key=lambda x: x.get(
+                "target_date", "9999-12-31"))
 
         # Display goals
         for goal in goals:
             db.display_goal_card(goal)
-
 
     def display_goal_card(db, goal):
         """Display individual goal card with actions"""
@@ -462,12 +455,13 @@ class GymDatabase:
             with col1:
                 st.write(
                     f"**Description:** {goal.get('description', 'No description')}")
-                st.write(f"**Target Date:** {goal.get('target_date', 'Not set')}")
+                st.write(
+                    f"**Target Date:** {goal.get('target_date', 'Not set')}")
 
                 # Progress bar if current progress exists
                 if goal.get("current_progress") is not None and goal.get("target_value"):
                     progress = min(goal["current_progress"] /
-                                goal["target_value"] * 100, 100)
+                                   goal["target_value"] * 100, 100)
                     st.progress(progress / 100, f"Progress: {progress:.1f}%")
 
             with col2:
@@ -495,10 +489,10 @@ class GymDatabase:
             with col3:
                 # Progress update
                 if goal.get("status") == "active":
-                    with st.popover("📊 Update Progress"):
+                    with st.popover("Update Progress"):
                         with st.form(f"progress_form_{goal['_id']}"):
                             progress_value = st.number_input("Current Progress",
-                                                            value=goal.get("current_progress", 0))
+                                                             value=goal.get("current_progress", 0))
                             progress_notes = st.text_area("Notes (optional)")
 
                             if st.form_submit_button("Update Progress"):
@@ -506,7 +500,8 @@ class GymDatabase:
                                     "progress_value": progress_value,
                                     "notes": progress_notes
                                 }
-                                db.update_goal_progress(goal["_id"], progress_data)
+                                db.update_goal_progress(
+                                    goal["_id"], progress_data)
                                 st.success("Progress updated!")
                                 st.rerun()
 
@@ -520,14 +515,13 @@ class GymDatabase:
 
             st.markdown("---")
 
-
     def show_add_goal_form(db):
         """Show form to add new goal"""
-        st.markdown("### ➕ Add New Goal")
+        st.markdown("### Add New Goal")
 
         st.markdown("""
         <div class="info-banner">
-            <h3>🚀 Goal Setting Tips</h3>
+            <h3>Goal Setting Tips</h3>
             <p>Set SMART goals: Specific, Measurable, Achievable, Relevant, Time-bound</p>
         </div>
         """, unsafe_allow_html=True)
@@ -557,9 +551,9 @@ class GymDatabase:
                     target_value = st.number_input(
                         "Target Value", value=float(template["target_value"]))
                     goal_category = st.selectbox("Category",
-                                                ["Strength", "Endurance", "Weight Loss", "Weight Gain",
-                                                "Flexibility", "Consistency", "Nutrition", "Other"],
-                                                index=["Weight Loss", "Strength", "Consistency", "Nutrition"].index(selected_template) if selected_template in ["Weight Loss", "Strength", "Consistency", "Nutrition"] else 0)
+                                                 ["Strength", "Endurance", "Weight Loss", "Weight Gain",
+                                                  "Flexibility", "Consistency", "Nutrition", "Other"],
+                                                 index=["Weight Loss", "Strength", "Consistency", "Nutrition"].index(selected_template) if selected_template in ["Weight Loss", "Strength", "Consistency", "Nutrition"] else 0)
                 else:
                     goal_title = st.text_input(
                         "Goal Title", placeholder="e.g., Run 5km without stopping")
@@ -568,8 +562,8 @@ class GymDatabase:
                     target_value = st.number_input(
                         "Target Value (if measurable)", value=0.0, help="Enter target number for measurable goals")
                     goal_category = st.selectbox("Category",
-                                                ["Strength", "Endurance", "Weight Loss", "Weight Gain",
-                                                "Flexibility", "Consistency", "Nutrition", "Other"])
+                                                 ["Strength", "Endurance", "Weight Loss", "Weight Gain",
+                                                  "Flexibility", "Consistency", "Nutrition", "Other"])
 
             with col2:
                 goal_description = st.text_area("Description",
@@ -579,12 +573,12 @@ class GymDatabase:
                 is_public = st.checkbox(
                     "Make this goal visible to others (if applicable)")
                 reminder_frequency = st.selectbox("Reminder Frequency",
-                                                ["None", "Daily", "Weekly", "Monthly"])
+                                                  ["None", "Daily", "Weekly", "Monthly"])
 
             current_progress = st.number_input("Current Progress", value=0.0,
-                                            help="Your starting point for this goal")
+                                               help="Your starting point for this goal")
 
-            if st.form_submit_button("🎯 Create Goal", use_container_width=True):
+            if st.form_submit_button("Create Goal", use_container_width=True):
                 if goal_title and target_date:
                     goal_data = {
                         "title": goal_title,
@@ -599,16 +593,15 @@ class GymDatabase:
                     }
 
                     db.save_goal(goal_data)
-                    st.success("✅ Goal created successfully!")
+                    st.success("Goal created successfully!")
                     st.balloons()
                 else:
                     st.error(
                         "Please fill in the required fields (Title and Target Date)")
 
-
     def show_goal_progress(db):
         """Show goal progress tracking"""
-        st.markdown("### 📊 Goal Progress Tracking")
+        st.markdown("### Goal Progress Tracking")
 
         active_goals = db.get_goals("active")
 
@@ -647,7 +640,7 @@ class GymDatabase:
                 with st.form("update_progress_form"):
                     st.markdown("#### Update Progress")
                     new_progress = st.number_input("New Progress Value",
-                                                value=selected_goal.get("current_progress", 0))
+                                                   value=selected_goal.get("current_progress", 0))
                     progress_date = st.date_input(
                         "Progress Date", value=date.today())
                     progress_notes = st.text_area(
@@ -675,20 +668,20 @@ class GymDatabase:
 
                 if len(dates) > 1:
                     fig = px.line(x=dates, y=values, title="Progress Over Time",
-                                labels={"x": "Date", "y": "Progress Value"})
+                                  labels={"x": "Date", "y": "Progress Value"})
                     st.plotly_chart(fig, use_container_width=True)
 
                 # Progress table
                 progress_df = pd.DataFrame(progress_logs)
                 if not progress_df.empty:
-                    progress_df = progress_df.sort_values("date", ascending=False)
+                    progress_df = progress_df.sort_values(
+                        "date", ascending=False)
                     st.dataframe(
                         progress_df[["date", "progress_value", "notes"]], use_container_width=True)
 
-
     def show_goal_analytics(db):
         """Show goal analytics and insights"""
-        st.markdown("### 📈 Goal Analytics & Insights")
+        st.markdown("### Goal Analytics & Insights")
 
         all_goals = db.get_goals()
 
@@ -706,7 +699,7 @@ class GymDatabase:
             if "category" in goals_df.columns:
                 category_counts = goals_df["category"].value_counts()
                 fig_category = px.pie(values=category_counts.values, names=category_counts.index,
-                                    title="Goals by Category")
+                                      title="Goals by Category")
                 st.plotly_chart(fig_category, use_container_width=True)
 
         with col2:
@@ -725,13 +718,14 @@ class GymDatabase:
                 "created_date").size().reset_index(name="count")
 
             fig_timeline = px.line(goals_timeline, x="created_date", y="count",
-                                title="Goals Created Over Time")
+                                   title="Goals Created Over Time")
             st.plotly_chart(fig_timeline, use_container_width=True)
 
         # Success insights
-        st.markdown("#### 🎯 Success Insights")
+        st.markdown("#### Success Insights")
 
-        completed_goals = [g for g in all_goals if g.get("status") == "completed"]
+        completed_goals = [
+            g for g in all_goals if g.get("status") == "completed"]
 
         if completed_goals:
             avg_completion_time = []
@@ -743,7 +737,8 @@ class GymDatabase:
 
             if avg_completion_time:
                 avg_days = sum(avg_completion_time) / len(avg_completion_time)
-                st.metric("Average Goal Completion Time", f"{avg_days:.1f} days")
+                st.metric("Average Goal Completion Time",
+                          f"{avg_days:.1f} days")
 
             # Most successful categories
             completed_df = pd.DataFrame(completed_goals)
@@ -854,7 +849,7 @@ def show_profile_page(user_data, db):
     # Page header with enhanced styling
     st.markdown('''
     <div class="profile-header">
-        <h1 class="page-title">🧑‍💻Profile Settings</h1>
+        <h1 class="page-title">Profile Settings</h1>
         <p class="page-subtitle">Manage your account information and preferences</p>
     </div>
     ''', unsafe_allow_html=True)
@@ -863,7 +858,7 @@ def show_profile_page(user_data, db):
     st.markdown('''
     <div class="info-section">
         <h2 class="section-title">
-            <span class="section-icon"> 📋 </span>
+            <span class="section-icon"> </span>
             <span class="section-text">Account Information</span>
         </h2>
     </div>
@@ -917,7 +912,7 @@ def show_profile_page(user_data, db):
     st.markdown('''
     <div class="stats-section">
         <h2 class="section-title">
-            <span class="section-icon">📎</span>
+            <span class="section-icon"> </span>
             <span class="section-text">Your Statistics Report</span>
         </h2>
     </div>
@@ -956,7 +951,7 @@ def show_profile_page(user_data, db):
     st.markdown('''
     <div class="danger-section">
         <h2 class="section-title danger-title">
-            <span class="section-icon">⚠️</span>
+            <span class="section-icon"> </span>
             <span class="section-text">Danger Zone</span>
         </h2>
     </div>
@@ -1017,7 +1012,7 @@ def show_profile_page(user_data, db):
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col1:
-            if st.button("❌ Cancel", use_container_width=True, key="cancel_btn"):
+            if st.button("Cancel", use_container_width=True, key="cancel_btn"):
                 st.session_state.show_delete_confirmation = False
                 st.rerun()
 
@@ -1046,14 +1041,14 @@ def show_profile_page(user_data, db):
                     else:
                         st.markdown(f'''
                         <div class="error-message">
-                            <div class="error-icon">❌</div>
+                            <div class="error-icon"></div>
                             <p>Failed to delete account: {message}</p>
                         </div>
                         ''', unsafe_allow_html=True)
                 else:
                     st.markdown('''
                     <div class="error-message">
-                        <div class="error-icon">❌</div>
+                        <div class="error-icon"></div>
                         <p>Username doesn't match. Please try again.</p>
                     </div>
                     ''', unsafe_allow_html=True)
@@ -1143,42 +1138,6 @@ DEFAULT_EXERCISES = {
 }
 
 
-# Timer functionality
-def rest_timer(duration_minutes):
-    if f"timer_start_{duration_minutes}" not in st.session_state:
-        st.session_state[f"timer_start_{duration_minutes}"] = None
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button(f"▶️ Start {duration_minutes}min", key=f"start_{duration_minutes}", use_container_width=True):
-            st.session_state[f"timer_start_{duration_minutes}"] = time.time()
-
-    with col2:
-        if st.button(f"⏹️ Stop", key=f"stop_{duration_minutes}", use_container_width=True):
-            st.session_state[f"timer_start_{duration_minutes}"] = None
-
-    if st.session_state[f"timer_start_{duration_minutes}"]:
-        elapsed = time.time() - \
-            st.session_state[f"timer_start_{duration_minutes}"]
-        remaining = (duration_minutes * 60) - elapsed
-
-        if remaining > 0:
-            mins, secs = divmod(int(remaining), 60)
-            with col3:
-                st.markdown(f"""
-                <div class="timer-display">
-                    <div class="timer-value">{mins:02d}:{secs:02d}</div>
-                    <div class="timer-label">Remaining</div>
-                </div>
-                """, unsafe_allow_html=True)
-            time.sleep(1)
-            st.rerun()
-        else:
-            st.success("⏰ Rest time complete!")
-            st.balloons()
-            st.session_state[f"timer_start_{duration_minutes}"] = None
-
 # Main app logic
 
 
@@ -1213,16 +1172,16 @@ def main_app():
 
     # Navigation
     page = st.sidebar.radio(
-        "🧭 Navigate",
-        ["👤 Profile", "🏠 Dashboard", "👁️ View Workouts", "📊 Log Workout", "📅 Attendance",
-         "🥗 Nutrition", "📏 Body Metrics", "📈 Progress", "🎯 Goals",
-         "📋 Workout Plans", "⏱️ Timer", "📊 Export Data", "🗑️ Manage Data"],
+        "Navigate",
+        ["Profile", "Dashboard", "View Workouts", "Log Workout", "Attendance",
+         "Nutrition", "Body Metrics", "Progress", "Goals",
+         "Workout Plans", "Timer", "Export Data", "Manage Data"],
         label_visibility="collapsed",  # Optional: hide label text
         index=1  # Default selection
     )
 
     # Check if profile page is requested
-    if page == "👤 Profile":
+    if page == "Profile":
         def load_css():
             with open("profile.css", "r", encoding="utf-8") as f:
                 st.markdown(f"<style>{f.read()}</style>",
@@ -1232,7 +1191,7 @@ def main_app():
         return
 
     # Dashboard
-    if page == "🏠 Dashboard":
+    if page == "Dashboard":
 
         def load_css():
             with open("dashboard.css", "r", encoding="utf-8") as f:
@@ -1373,7 +1332,7 @@ def main_app():
         st.markdown('''
         <div class="section-divider"></div>
         <div class="section-header">
-            <h2 class="section-title">⚡ Quick Log</h2>
+            <h2 class="section-title">Quick Log</h2>
         </div>
         ''', unsafe_allow_html=True)
 
@@ -1392,15 +1351,15 @@ def main_app():
             today = date.today().strftime("%Y-%m-%d")
             attended_today = st.radio(
                 "Did you go to the gym today?",
-                ["Not logged", "✅ Yes", "❌ No"],
+                ["Not logged", "Yes", "No"],
                 key="quick_attendance",
                 label_visibility="collapsed"
             )
 
             if attended_today != "Not logged":
-                if st.button("📝 Log Attendance", use_container_width=True, key="log_att_btn"):
-                    db.log_attendance(today, attended_today == "✅ Yes")
-                    st.success("✅ Attendance logged successfully!")
+                if st.button("Log Attendance", use_container_width=True, key="log_att_btn"):
+                    db.log_attendance(today, attended_today == "Yes")
+                    st.success("Attendance logged successfully!")
                     st.rerun()
 
             st.markdown('</div></div>', unsafe_allow_html=True)
@@ -1425,9 +1384,9 @@ def main_app():
                 placeholder="Enter protein amount..."
             )
 
-            if st.button("📝 Log Protein", use_container_width=True, key="log_protein_btn"):
+            if st.button("Log Protein", use_container_width=True, key="log_protein_btn"):
                 db.log_nutrition(today, protein_amount)
-                st.success("✅ Protein intake logged successfully!")
+                st.success("Protein intake logged successfully!")
                 st.rerun()
 
             st.markdown('</div></div>', unsafe_allow_html=True)
@@ -1436,7 +1395,7 @@ def main_app():
         st.markdown('''
         <div class="section-divider"></div>
         <div class="section-header">
-            <h2 class="section-title">📊 Recent Activity</h2>
+            <h2 class="section-title">Recent Activity</h2>
         </div>
         ''', unsafe_allow_html=True)
 
@@ -1447,14 +1406,14 @@ def main_app():
             <div class="activity-showcase">
                 <div class="activity-card latest-workout">
                     <div class="activity-header">
-                        <div class="activity-icon-large">💪</div>
+                        <div class="activity-icon-large"></div>
                         <div class="activity-badge">Latest</div>
                     </div>
                     <div class="activity-body">
                         <div class="activity-title">Last Workout Session</div>
                         <div class="activity-meta">
-                            <span class="activity-date">📅 {latest_workout['date']}</span>
-                            <span class="activity-exercises">🎯 {exercise_count} exercises</span>
+                            <span class="activity-date">{latest_workout['date']}</span>
+                            <span class="activity-exercises">{exercise_count} exercises</span>
                         </div>
                         <div class="activity-progress">
                             <div class="activity-stats">
@@ -1464,7 +1423,7 @@ def main_app():
                                 </div>
                                 <div class="stat-item">
                                     <span class="stat-label">Status</span>
-                                    <span class="stat-value completed">✅ Completed</span>
+                                    <span class="stat-value completed">Completed</span>
                                 </div>
                             </div>
                         </div>
@@ -1476,7 +1435,7 @@ def main_app():
             st.markdown('''
             <div class="activity-showcase">
                 <div class="empty-state">
-                    <div class="empty-icon">💪</div>
+                    <div class="empty-icon"></div>
                     <div class="empty-title">No recent workouts</div>
                     <div class="empty-subtitle">Start logging your workouts to see activity here!</div>
                 </div>
@@ -1487,7 +1446,7 @@ def main_app():
         st.markdown('''
         <div class="section-divider"></div>
         <div class="section-header">
-            <h2 class="section-title">📈 Attendance Trends</h2>
+            <h2 class="section-title">Attendance Trends</h2>
             <p class="section-subtitle">Your gym attendance over the last 30 days</p>
         </div>
         ''', unsafe_allow_html=True)
@@ -1557,14 +1516,14 @@ def main_app():
             st.markdown('''
             <div class="chart-container">
                 <div class="empty-chart">
-                    <div class="empty-icon">📊</div>
+                    <div class="empty-icon"></div>
                     <div class="empty-title">No attendance data yet</div>
                     <div class="empty-subtitle">Start logging your gym visits to see trends!</div>
                 </div>
             </div>
             ''', unsafe_allow_html=True)
 
-    elif page == "👁️ View Workouts":
+    elif page == "View Workouts":
         st.markdown('<h1 class="page-title">Past Workouts</h1>',
                     unsafe_allow_html=True)
 
@@ -1728,12 +1687,12 @@ def main_app():
             st.markdown("""
             <div class="info-banner">
                 <p>💡 <strong>Tip:</strong> Start logging your workouts to see them here!</p>
-                <p>Use the "💪 Today's Workout" or "📊 Log Workout" pages to add workouts.</p>
+                <p>Use the "Log Workout" pages to add workouts.</p>
             </div>
             """, unsafe_allow_html=True)
 
-    elif page == "📊 Log Workout":
-        st.markdown('<h1 class="page-title">📊 Log Workout</h1>',
+    elif page == "Log Workout":
+        st.markdown('<h1 class="page-title">Log Workout</h1>',
                     unsafe_allow_html=True)
 
         # Initialize workout flow state
@@ -1766,7 +1725,7 @@ def main_app():
         # ============================================================================
         if st.session_state.workout_flow_step == 'setup':
             st.markdown(
-                '<h2 class="section-title">📋 Workout Setup</h2>', unsafe_allow_html=True)
+                '<h2 class="section-title">Workout Setup</h2>', unsafe_allow_html=True)
 
             # Get workout recommendation
             today = date.today().strftime("%Y-%m-%d")
@@ -2287,12 +2246,12 @@ def main_app():
                 st.rerun()
 
     # Data Management Page
-    elif page == "🗑️ Manage Data":
+    elif page == "Manage Data":
         st.markdown('<h1 class="page-title">Manage Your Data</h1>',
                     unsafe_allow_html=True)
 
         tab1, tab2, tab3, tab4 = st.tabs(
-            ["🏋️ Workouts", "📅 Attendance", "🥗 Nutrition", "📏 Body Metrics"])
+            ["Workouts", "Attendance", "Nutrition", "Body Metrics"])
 
         with tab1:
             st.markdown("### Delete Workout Records")
@@ -2318,8 +2277,8 @@ def main_app():
                 for record in attendance:
                     col1, col2 = st.columns([4, 1])
                     with col1:
-                        status = "✅ Attended" if record.get(
-                            'attended') else "❌ Missed"
+                        status = "Attended" if record.get(
+                            'attended') else "Missed"
                         st.write(f"**{record['date']}** - {status}")
                     with col2:
                         if st.button("🗑️", key=f"del_attendance_{record['date']}"):
@@ -2365,7 +2324,7 @@ def main_app():
                 st.info("No body metrics records found")
 
     # Attendance Page
-    elif page == "📅 Attendance":
+    elif page == "Attendance":
         # Load custom CSS
         try:
             with open('attendance.css') as f:
@@ -2377,7 +2336,7 @@ def main_app():
         # Page Header
         st.markdown("""
         <div class="main-header">
-            <h1 style="margin:0; font-size: 2.5rem;">📅 Gym Attendance</h1>
+            <h1 style="margin:0; font-size: 2.5rem;">Gym Attendance</h1>
             <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Track your fitness journey and maintain consistency</p>
         </div>
         """, unsafe_allow_html=True)
@@ -2388,7 +2347,7 @@ def main_app():
         # with col1:
         # Form section with container
         with st.container():
-            st.markdown("### 🏋️ Log Today's Attendance")
+            st.markdown("### Log Today's Attendance")
 
             # Date input
             attendance_date = st.date_input(
@@ -2399,7 +2358,7 @@ def main_app():
 
             # Attendance selector
             attended = st.selectbox(
-                "💪 Did you attend the gym?",
+                "Did you attend the gym?",
                 ["Yes", "No"],
                 help="Select whether you attended the gym on this date"
             )
@@ -2425,7 +2384,7 @@ def main_app():
                             attended == "Yes",
                             notes
                         )
-                        st.success("🎉 Attendance logged successfully!")
+                        st.success("Attendance logged successfully!")
                         st.balloons()
                         st.rerun()
                     except Exception as e:
@@ -2433,7 +2392,7 @@ def main_app():
 
         # with col2:
             # History section
-        st.markdown("### 📊 Your Fitness Journey")
+        st.markdown("### Your Fitness Journey")
 
         try:
             attendance_data = db.get_attendance_data(30)
@@ -2507,45 +2466,45 @@ def main_app():
                     break
 
             # Display stats using Streamlit metrics
-            st.markdown("#### 📈 Your Statistics")
+            st.markdown("#### Your Statistics")
 
             metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
 
             with metric_col1:
                 st.metric(
-                    label="🎯 Days Attended",
+                    label="Days Attended",
                     value=attended_days,
                     delta=f"{attendance_rate:.1f}% success rate"
                 )
 
             with metric_col2:
                 st.metric(
-                    label="😴 Days Missed",
+                    label="Days Missed",
                     value=missed_days,
                     delta=f"{100-attendance_rate:.1f}% missed"
                 )
 
             with metric_col3:
                 st.metric(
-                    label="📊 Success Rate",
+                    label="Success Rate",
                     value=f"{attendance_rate:.1f}%",
                     delta="Last 30 days"
                 )
 
             with metric_col4:
                 st.metric(
-                    label="🔥 Current Streak",
+                    label="Current Streak",
                     value=current_streak,
                     delta="Consecutive days"
                 )
 
             # Recent activity section
-            st.markdown("#### 🕒 Recent Activity")
+            st.markdown("#### Recent Activity")
 
             recent_entries = df.head(10)
 
             # Create tabs for better organization
-            tab1, tab2 = st.tabs(["📋 Activity List", "📅 Calendar View"])
+            tab1, tab2 = st.tabs(["Activity List", "Calendar View"])
 
             with tab1:
                 for i, (_, row) in enumerate(recent_entries.iterrows()):
@@ -2585,7 +2544,7 @@ def main_app():
                 )
 
             # Progress visualization
-            st.markdown("#### 🎯 Weekly Progress")
+            st.markdown("#### Weekly Progress")
 
             # Group by week and show progress
             df['week'] = df['date'].dt.isocalendar().week
@@ -2621,20 +2580,20 @@ def main_app():
 
         else:
             # Empty state
-            st.info("📊 No attendance data available yet")
+            st.info("No attendance data available yet")
 
             # Motivational content for new users
             st.markdown("""
-                ### 🚀 Start Your Fitness Journey!
+                ### Start Your Fitness Journey!
                 
                 Welcome to your attendance tracker! Here's what you can expect:
                 
-                - 📈 **Track Progress**: Monitor your gym attendance over time
-                - 🔥 **Build Streaks**: See your consecutive attendance days
-                - 📊 **Analyze Patterns**: Understand your workout habits
-                - 🎯 **Stay Motivated**: Visualize your fitness commitment
+                - **Track Progress**: Monitor your gym attendance over time
+                - **Build Streaks**: See your consecutive attendance days
+                - **Analyze Patterns**: Understand your workout habits
+                - **Stay Motivated**: Visualize your fitness commitment
                 
-                **💪 Ready to begin?** Log your first gym session using the form on the left!
+                **Ready to begin?** Log your first gym session using the form on the left!
                 """)
 
             # Add some motivational quotes
@@ -2653,12 +2612,12 @@ def main_app():
         # Footer with additional tips
         st.markdown("---")
 
-        with st.expander("💡 Tips for Consistent Gym Attendance"):
+        with st.expander("Tips for Consistent Gym Attendance"):
             tip_col1, tip_col2 = st.columns(2)
 
             with tip_col1:
                 st.markdown("""
-                **🎯 Setting Goals:**
+                **Setting Goals:**
                 - Start with realistic targets
                 - Aim for 3-4 days per week initially
                 - Track your progress regularly
@@ -2667,7 +2626,7 @@ def main_app():
 
             with tip_col2:
                 st.markdown("""
-                **🔥 Building Habits:**
+                **Building Habits:**
                 - Schedule gym time like appointments
                 - Prepare gym clothes the night before
                 - Find a workout buddy
@@ -2675,7 +2634,7 @@ def main_app():
                 """)
 
     # Nutrition Page
-    elif page == "🥗 Nutrition":
+    elif page == "Nutrition":
 
         try:
             # Load custom CSS
@@ -2699,7 +2658,7 @@ def main_app():
         """, unsafe_allow_html=True)
 
         # Create tabs instead of columns
-        tab1, tab2 = st.tabs(["📝 Log Nutrition", "📊 Analytics & History"])
+        tab1, tab2 = st.tabs(["Log Nutrition", "Analytics & History"])
 
         with tab1:
             # Nutrition logging card
@@ -2742,7 +2701,7 @@ def main_app():
                     <div class="progress-fill" style="width: {protein_progress}%"></div>
                 </div>
                 <div class="progress-status {'on-track' if protein_progress >= 80 else 'needs-attention'}">
-                    {'🎯 On Track!' if protein_progress >= 80 else '💪 Keep Going!'}
+                    {'On Track!' if protein_progress >= 80 else 'Keep Going!'}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -2750,7 +2709,7 @@ def main_app():
             # Meals section with enhanced UI
             st.markdown("""
             <div class="meals-section">
-                <h3 class="section-title">🍽️ Today's Meals</h3>
+                <h3 class="section-title">Today's Meals</h3>
             </div>
             """, unsafe_allow_html=True)
 
@@ -2784,7 +2743,7 @@ def main_app():
             st.markdown("""
             <div class="notes-section">
                 <label class="notes-label">
-                    <span class="notes-icon">📋</span>
+                    <span class="notes-icon"></span>
                     Additional Notes
                 </label>
             </div>
@@ -2800,7 +2759,7 @@ def main_app():
             # Log button with enhanced styling
             st.markdown('<div class="button-container">',
                         unsafe_allow_html=True)
-            if st.button("📝 Log Nutrition", use_container_width=True, type="primary"):
+            if st.button("Log Nutrition", use_container_width=True, type="primary"):
                 try:
                     db.log_nutrition(
                         nutrition_date.strftime("%Y-%m-%d"),
@@ -2808,7 +2767,7 @@ def main_app():
                         meals,
                         nutrition_notes
                     )
-                    st.success("✅ Nutrition logged successfully!")
+                    st.success("Nutrition logged successfully!")
                     st.balloons()
                     st.rerun()
                 except Exception as e:
@@ -2826,7 +2785,7 @@ def main_app():
             <div class="nutrition-card analytics-card">
                 <div class="card-header">
                     <h2 class="card-title">
-                        <span class="card-icon">📊</span>
+                        <span class="card-icon"></span>
                         Nutrition Analytics
                     </h2>
                 </div>
@@ -2928,7 +2887,7 @@ def main_app():
                     if len(df) > 0:
                         st.markdown("""
                         <div class="recent-meals">
-                            <h3 class="section-title">🍽️ Recent Meals</h3>
+                            <h3 class="section-title">Recent Meals</h3>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -2947,11 +2906,11 @@ def main_app():
                     # Empty state with call to action
                     st.markdown("""
                     <div class="empty-state">
-                        <div class="empty-icon">📊</div>
+                        <div class="empty-icon"></div>
                         <h3 class="empty-title">No Data Yet</h3>
                         <p class="empty-message">Start logging your nutrition to see beautiful analytics and track your progress!</p>
                         <div class="empty-tips">
-                            <h4>💡 Quick Tips:</h4>
+                            <h4>💡Quick Tips:</h4>
                             <ul>
                                 <li>Log your meals daily for better insights</li>
                                 <li>Aim for 150g of protein per day</li>
@@ -2972,16 +2931,16 @@ def main_app():
             """, unsafe_allow_html=True)
 
     # Body Metrics Page
-    elif page == "📏 Body Metrics":
+    elif page == "Body Metrics":
         # Load external CSS
         with open('body_metrics.css', 'r') as f:
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-        st.markdown('<div class="page-header"><h1 class="page-title">📏 Body Metrics</h1><p class="page-subtitle">Track your body measurements and weight progress</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-header"><h1 class="page-title">Body Metrics</h1><p class="page-subtitle">Track your body measurements and weight progress</p></div>', unsafe_allow_html=True)
 
         # Create tabs
         tab1, tab2, tab3 = st.tabs(
-            ["📝 Log Metrics", "📊 Progress Charts", "📋 History"])
+            ["Log Metrics", "Progress Charts", "History"])
 
         with tab1:
             st.markdown('<div class="tab-content">', unsafe_allow_html=True)
@@ -2993,7 +2952,7 @@ def main_app():
                 st.markdown('<div class="form-section">',
                             unsafe_allow_html=True)
                 st.markdown(
-                    '<h3 class="section-title">📅 Basic Info</h3>', unsafe_allow_html=True)
+                    '<h3 class="section-title">Basic Info</h3>', unsafe_allow_html=True)
 
                 metrics_date = st.date_input(
                     "Date", value=date.today(), key="metrics_date")
@@ -3010,7 +2969,7 @@ def main_app():
                 st.markdown('<div class="form-section">',
                             unsafe_allow_html=True)
                 st.markdown(
-                    '<h3 class="section-title">📐 Measurements (cm)</h3>', unsafe_allow_html=True)
+                    '<h3 class="section-title">Measurements (cm)</h3>', unsafe_allow_html=True)
 
                 measurements = {}
                 measurement_types = [
@@ -3039,7 +2998,7 @@ def main_app():
             # Notes section
             st.markdown('<div class="form-section full-width">',
                         unsafe_allow_html=True)
-            st.markdown('<h3 class="section-title">📝 Notes</h3>',
+            st.markdown('<h3 class="section-title">Notes</h3>',
                         unsafe_allow_html=True)
             metrics_notes = st.text_area("Add any notes about your measurements",
                                          placeholder="e.g., Measured after workout, morning weight, etc.", key="metrics_notes")
@@ -3048,7 +3007,7 @@ def main_app():
             # Action buttons
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                if st.button("📝 Log Metrics", use_container_width=True, type="primary"):
+                if st.button("Log Metrics", use_container_width=True, type="primary"):
                     db.log_body_metrics(
                         metrics_date.strftime("%Y-%m-%d"),
                         weight if weight > 0 else None,
@@ -3056,7 +3015,7 @@ def main_app():
                         metrics_notes,
                         body_fat if body_fat > 0 else None
                     )
-                    st.success("✅ Body metrics logged successfully!")
+                    st.success("Body metrics logged successfully!")
                     st.rerun()
 
             st.markdown('</div>', unsafe_allow_html=True)
@@ -3128,7 +3087,7 @@ def main_app():
             else:
                 st.markdown('<div class="empty-state">',
                             unsafe_allow_html=True)
-                st.markdown('<h3>📈 No Data Available</h3>',
+                st.markdown('<h3>No Data Available</h3>',
                             unsafe_allow_html=True)
                 st.markdown(
                     '<p>Start logging your body metrics to see progress charts here!</p>', unsafe_allow_html=True)
@@ -3154,7 +3113,7 @@ def main_app():
                     st.markdown('<div class="metrics-summary">',
                                 unsafe_allow_html=True)
                     st.markdown(
-                        '<h3 class="section-title">📊 Latest Measurements</h3>', unsafe_allow_html=True)
+                        '<h3 class="section-title">Latest Measurements</h3>', unsafe_allow_html=True)
 
                     # Create metric cards
                     metric_cols = st.columns(4)
@@ -3208,7 +3167,7 @@ def main_app():
             else:
                 st.markdown('<div class="empty-state">',
                             unsafe_allow_html=True)
-                st.markdown('<h3>📋 No History Available</h3>',
+                st.markdown('<h3>No History Available</h3>',
                             unsafe_allow_html=True)
                 st.markdown(
                     '<p>Your measurement history will appear here once you start logging data.</p>', unsafe_allow_html=True)
@@ -3217,8 +3176,8 @@ def main_app():
             st.markdown('</div>', unsafe_allow_html=True)
 
     # Progress Page
-    elif page == "📈 Progress":
-        st.markdown('<h1 class="page-title">📈 Your Progress</h1>',
+    elif page == "Progress":
+        st.markdown('<h1 class="page-title">Your Progress</h1>',
                     unsafe_allow_html=True)
 
         # Time period selector
@@ -3277,7 +3236,7 @@ def main_app():
             st.info("No data available for the selected period")
 
     # Goals Page
-    elif page == "🎯 Goals":
+    elif page == "Goals":
         try:
             with open('goals.css') as f:
                 st.markdown(f'<style>{f.read()}</style>',
@@ -3287,64 +3246,235 @@ def main_app():
         db.show_goals_page()
 
     # Workout Plans Page
-    elif page == "📋 Workout Plans":
-        st.markdown('<h1 class="page-title">📋 Workout Plans</h1>',
-                    unsafe_allow_html=True)
+    elif page == "Workout Plans":
+        # Load custom CSS
+        with open('workout_plans.css', 'r') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+        
+        # Page header with enhanced styling
+        st.markdown('''
+            <div class="page-header">
+                <div class="header-content">
+                    <h1 class="page-title">
+                        <span class="title-icon"></span>
+                        Workout Plans
+                    </h1>
+                    <p class="page-subtitle">Create and manage your personalized training programs</p>
+                </div>
+            </div>
+        ''', unsafe_allow_html=True)
 
-        tab1, tab2 = st.tabs(["📝 Create Plan", "📚 My Plans"])
+        # Enhanced tabs with custom styling
+        tab1, tab2 = st.tabs(["Create Plan", "My Plans"])
 
         with tab1:
-            with st.form("workout_plan_form"):
+            st.markdown('<div class="tab-content">', unsafe_allow_html=True)
+            
+            # Plan basics section
+            st.markdown('''
+                <div class="section-header">
+                    <h3>Plan Basics</h3>
+                    <p>Start by giving your workout plan a name and description</p>
+                </div>
+            ''', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 3])
+            
+            with col1:
                 plan_name = st.text_input(
-                    "Plan Name", placeholder="e.g., Push Pull Legs")
-                plan_description = st.text_area("Description",
-                                                placeholder="Describe your workout plan")
+                    "Plan Name", 
+                    placeholder="e.g., Push Pull Legs, Upper Lower Split",
+                    help="Choose a memorable name for your workout plan"
+                )
+            
+            with col2:
+                plan_description = st.text_area(
+                    "Description",
+                    placeholder="Describe your goals, focus areas, or any special notes about this plan",
+                    height=100,
+                    help="Optional: Add details about your training goals"
+                )
 
-                st.markdown("### Plan Structure")
-                days = st.multiselect("Training Days",
-                                      ["Monday", "Tuesday", "Wednesday", "Thursday",
-                                       "Friday", "Saturday", "Sunday"])
-
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            
+            # Training schedule section
+            st.markdown('''
+                <div class="section-header">
+                    <h3>Training Schedule</h3>
+                    <p>Select the days you want to train</p>
+                </div>
+            ''', unsafe_allow_html=True)
+            
+            # Custom day selector with better UX
+            days_options = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            selected_days = []
+            
+            cols = st.columns(7)
+            for i, day in enumerate(days_options):
+                with cols[i]:
+                    day_short = day[:3]
+                    if st.checkbox(day_short, key=f"day_{day}"):
+                        selected_days.append(day)
+            
+            if selected_days:
+                st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+                
+                # Workout structure section
+                st.markdown('''
+                    <div class="section-header">
+                        <h3>Workout Structure</h3>
+                        <p>Configure exercises for each training day</p>
+                    </div>
+                ''', unsafe_allow_html=True)
+                
                 plan_data = {
-                    "name": plan_name, "description": plan_description, "days": days, "exercises": {}}
-
-                for day in days:
-                    st.markdown(f"**{day} Workout**")
-                    workout_type = st.selectbox(f"Workout Type for {day}",
-                                                list(DEFAULT_EXERCISES.keys()), key=f"type_{day}")
-                    selected_exercises = st.multiselect(f"Exercises for {day}",
-                                                        DEFAULT_EXERCISES[workout_type], key=f"ex_{day}")
-                    plan_data["exercises"][day] = {
-                        "type": workout_type, "exercises": selected_exercises}
-
-                if st.form_submit_button("💾 Save Plan", use_container_width=True):
-                    if plan_name and days:
-                        db.save_workout_plan(plan_data)
-                        st.success("✅ Workout plan saved!")
-                    else:
-                        st.error(
-                            "Please fill in plan name and select training days")
+                    "name": plan_name,
+                    "description": plan_description,
+                    "days": selected_days,
+                    "exercises": {}
+                }
+                
+                # Exercise configuration for each day
+                for i, day in enumerate(selected_days):
+                    with st.expander(f"🏋️ {day} Workout", expanded=i == 0):
+                        col1, col2 = st.columns([1, 2])
+                        
+                        with col1:
+                            workout_type = st.selectbox(
+                                "Workout Focus",
+                                list(DEFAULT_EXERCISES.keys()),
+                                key=f"type_{day}",
+                                help=f"Choose the primary focus for {day}"
+                            )
+                        
+                        with col2:
+                            selected_exercises = st.multiselect(
+                                "Select Exercises",
+                                DEFAULT_EXERCISES[workout_type],
+                                key=f"ex_{day}",
+                                help="Choose exercises from the selected category"
+                            )
+                        
+                        # Show exercise count
+                        if selected_exercises:
+                            st.markdown(f'''
+                                <div class="exercise-count">
+                                    ✅ {len(selected_exercises)} exercises selected
+                                </div>
+                            ''', unsafe_allow_html=True)
+                        
+                        plan_data["exercises"][day] = {
+                            "type": workout_type,
+                            "exercises": selected_exercises
+                        }
+                
+                st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+                
+                # Save button section
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    if st.button("Save Workout Plan", use_container_width=True, type="primary"):
+                        if plan_name and selected_days:
+                            # Validate that at least one day has exercises
+                            has_exercises = any(plan_data["exercises"].get(day, {}).get("exercises", []) 
+                                            for day in selected_days)
+                            
+                            if has_exercises:
+                                db.save_workout_plan(plan_data)
+                                st.success("🎉 Workout plan saved successfully!")
+                                st.balloons()
+                            else:
+                                st.warning("⚠️ Please add at least one exercise to your plan")
+                        else:
+                            st.error("❌ Please fill in plan name and select training days")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with tab2:
+            st.markdown('<div class="tab-content">', unsafe_allow_html=True)
+            
             plans = db.get_workout_plans()
+            
             if plans:
-                for plan in plans:
-                    with st.expander(f"📋 {plan['name']}"):
-                        st.write(plan.get('description', 'No description'))
-                        st.write(
-                            f"**Training Days:** {', '.join(plan.get('days', []))}")
-
+                # Plans header with stats
+                st.markdown(f'''
+                    <div class="plans-header">
+                        <h3>Your Workout Plans</h3>
+                        <div class="plans-stats">
+                            <span class="stat-badge">{len(plans)} Plans Created</span>
+                        </div>
+                    </div>
+                ''', unsafe_allow_html=True)
+                
+                # Plans grid
+                for i, plan in enumerate(plans):
+                    # Calculate plan stats
+                    total_days = len(plan.get('days', []))
+                    total_exercises = sum(len(workout.get('exercises', [])) 
+                                        for workout in plan.get('exercises', {}).values())
+                    
+                    st.markdown(f'''
+                        <div class="plan-card">
+                            <div class="plan-header">
+                                <h4 class="plan-name">{plan['name']}</h4>
+                                <div class="plan-stats">
+                                    <span class="stat-item">📅 {total_days} days</span>
+                                    <span class="stat-item">🏋️ {total_exercises} exercises</span>
+                                </div>
+                            </div>
+                            <div>{f'<p class="plan-description">{plan.get("description", "")}</p>' if plan.get("description") else "No Plan Description"}</div>
+                            <div class="plan-schedule">
+                                <strong>Training Days:</strong>
+                                <div class="days-list">{" ".join([f'<span class="day-badge">{day[:3]}</span>' for day in plan.get("days", [])])}</div>
+                            </div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    # Expandable workout details
+                    with st.expander("📋 View Workout Details"):
                         for day, workout in plan.get('exercises', {}).items():
-                            st.write(
-                                f"**{day}:** {workout.get('type', 'N/A')} - {len(workout.get('exercises', []))} exercises")
-
-                        if st.button(f"🗑️ Delete {plan['name']}", key=f"del_plan_{plan['name']}"):
-                            db.delete_workout_plan(plan['name'])
-                            st.rerun()
+                            st.markdown(f'''
+                                <div class="workout-detail">
+                                    <h5>{day}</h5>
+                                    <p><strong>Focus:</strong> {workout.get('type', 'N/A')}</p>
+                                    <p><strong>Exercises:</strong> {', '.join(workout.get('exercises', [])[:])}</p>
+                                </div>
+                            ''', unsafe_allow_html=True)
+                    
+                    # Action buttons
+                    col1, col2, col3 = st.columns([2, 1, 1])
+                    with col2:
+                        if st.button("📝 Edit", key=f"edit_{i}", help="Edit this plan"):
+                            st.info("Edit functionality coming soon!")
+                    
+                    with col3:
+                        if st.button("🗑️ Delete", key=f"del_{i}", help="Delete this plan"):
+                            if st.session_state.get(f"confirm_delete_{i}", False):
+                                db.delete_workout_plan(plan['name'])
+                                st.success("Plan deleted!")
+                                st.rerun()
+                            else:
+                                st.session_state[f"confirm_delete_{i}"] = True
+                                st.warning("Click again to confirm deletion")
+                    
+                    st.markdown('<div class="plan-divider"></div>', unsafe_allow_html=True)
+            
             else:
-                st.info("No workout plans created yet")
+                # Empty state with better design
+                st.markdown('''
+                    <div class="empty-state">
+                        <div class="empty-icon">🏋️‍♀️</div>
+                        <h3>No workout plans yet</h3>
+                        <p>Create your first workout plan to get started on your fitness journey!</p>
+                        <div class="empty-action">
+                            Switch to the "Create Plan" tab to begin
+                        </div>
+                    </div>
+                ''', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    elif page == "⏱️ Timer":
+    elif page == "Timer":
         # Timer Page
         try:
             with open('timer.css') as f:
@@ -3355,7 +3485,7 @@ def main_app():
             # Fallback if CSS file not found
 
         # Main page title
-        st.markdown('<h1 class="page-title">⏱️ Workout Timers</h1>',
+        st.markdown('<h1 class="page-title">Workout Timers</h1>',
                     unsafe_allow_html=True)
 
         # --- Workout Timer Section ---
@@ -3363,7 +3493,7 @@ def main_app():
 
         st.markdown('<div class="timer-container">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="section-header">🏋️ Workout Session Timer</div>', unsafe_allow_html=True)
+            '<div class="section-header">Workout Session Timer</div>', unsafe_allow_html=True)
 
         if "workout_timer_start" not in st.session_state:
             st.session_state.workout_timer_start = None
@@ -3387,7 +3517,7 @@ def main_app():
                 st.markdown(f"""
                 <div class="workout-timer">
                     <div class="timer-display-large">{hours:02d}:{minutes:02d}:{seconds:02d}</div>
-                    <div class="timer-label">💪 Workout Duration</div>
+                    <div class="timer-label">Workout Duration</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -3398,7 +3528,7 @@ def main_app():
                 st.markdown("""
                 <div class="workout-timer">
                     <div class="timer-display-large">00:00:00</div>
-                    <div class="timer-label">Ready to Start! 🚀</div>
+                    <div class="timer-label">Ready to Start!</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -3412,12 +3542,12 @@ def main_app():
         with col1:
             st.markdown("""
             <div class="timer-card">
-                <h4>💡 Timer Tips</h4>
+                <h4>Timer Tips</h4>
                 <ul>
-                    <li>🎯 Use 1-2 min rest for light exercises</li>
-                    <li>💪 Use 2-3 min rest for moderate weights</li>
-                    <li>🏋️ Use 3-5 min rest for heavy lifts</li>
-                    <li>⏰ Track total workout time for consistency</li>
+                    <li>Use 1-2 min rest for light exercises</li>
+                    <li>Use 2-3 min rest for moderate weights</li>
+                    <li>Use 3-5 min rest for heavy lifts</li>
+                    <li>Track total workout time for consistency</li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
@@ -3425,18 +3555,18 @@ def main_app():
         with col2:
             st.markdown("""
             <div class="timer-card">
-                <h4>📊 Quick Stats</h4>
-                <p>🔥 <strong>Active Timers:</strong> Visual countdown displays</p>
-                <p>⚡ <strong>Quick Access:</strong> Pre-set common rest periods</p>
-                <p>🎨 <strong>Custom Duration:</strong> Set any rest time you need</p>
-                <p>📱 <strong>Responsive:</strong> Works on all devices</p>
+                <h4>Quick Stats</h4>
+                <p><strong>Active Timers:</strong> Visual countdown displays</p>
+                <p><strong>Quick Access:</strong> Pre-set common rest periods</p>
+                <p><strong>Custom Duration:</strong> Set any rest time you need</p>
+                <p><strong>Responsive:</strong> Works on all devices</p>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Export Data Page
-    elif page == "📊 Export Data":
+    elif page == "Export Data":
         st.markdown('<h1 class="page-title">📊 Export Your Data</h1>',
                     unsafe_allow_html=True)
 
@@ -3449,7 +3579,7 @@ def main_app():
                     "Last 6 Months": 180, "All Time": 365*2}
         days = days_map[export_period]
 
-        if st.button("📊 Generate Export", use_container_width=True):
+        if st.button("Generate Export", use_container_width=True):
             # Get all data
             workouts = db.get_recent_workouts(days)
             attendance = db.get_attendance_data(days)
@@ -3480,7 +3610,7 @@ def main_app():
 
             # Provide download
             st.download_button(
-                label="💾 Download JSON Export",
+                label="Download JSON Export",
                 data=json_data,
                 file_name=f"gym_tracker_export_{username}_{date.today()}.json",
                 mime="application/json"
