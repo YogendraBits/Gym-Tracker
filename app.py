@@ -2903,18 +2903,18 @@ def main_app():
         with col2:
             st.markdown('<div class="section-header">Custom Timer</div>', unsafe_allow_html=True)
             
-            custom_minutes = st.number_input(
-                "Custom Timer (minutes)", 
-                min_value=1, 
-                max_value=60, 
-                value=2,
-                help="Set your custom rest duration"
-            )
-            rest_timer(custom_minutes, key_prefix="custom_")
+        #     custom_minutes = st.number_input(
+        #         "Custom Timer (minutes)", 
+        #         min_value=1, 
+        #         max_value=60, 
+        #         value=2,
+        #         help="Set your custom rest duration"
+        #     )
+        #     rest_timer(custom_minutes, key_prefix="custom_")
             
-            st.markdown('</div>', unsafe_allow_html=True)
+        #     st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        # st.markdown('</div>', unsafe_allow_html=True)
 
         # --- Workout Timer Section ---
         st.markdown("---")
