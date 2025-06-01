@@ -2912,9 +2912,9 @@ def main_app():
         #     )
         #     rest_timer(custom_minutes, key_prefix="custom_")
             
-        #     st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # --- Workout Timer Section ---
         st.markdown("---")
