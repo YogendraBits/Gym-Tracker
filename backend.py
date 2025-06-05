@@ -313,29 +313,9 @@ class GymDatabase:
 # Authentication UI
 
 
-import time  # Add this import at the top
-
 def show_auth_page():
-    # Initialize session state for loading
-    if 'login_loading' not in st.session_state:
-        st.session_state.login_loading = False
-    if 'register_loading' not in st.session_state:
-        st.session_state.register_loading = False
-    
-    # Check if user should be remembered (auto-login)
-    if 'remember_me' not in st.session_state:
-        st.session_state.remember_me = False
-    
-    # Auto-login if remembered
-    if st.session_state.get('remember_me', False) and not st.session_state.get('authenticated', False):
-        remembered_user = st.session_state.get('remembered_user_data')
-        if remembered_user:
-            st.session_state.authenticated = True
-            st.session_state.user_data = remembered_user
-            st.rerun()
-    
     st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-    
+
     # Hero Section
     st.markdown("""
     <div class="hero-section">
@@ -346,200 +326,83 @@ def show_auth_page():
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Auth Form
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
-    
+
     with tab1:
         st.markdown('<div class="auth-form">', unsafe_allow_html=True)
-        with st.form("login_form", clear_on_submit=False):
+        with st.form("login_form"):
             st.markdown("### Your Personalized Dashboard")
-            
             username = st.text_input(
-                "Username", 
-                placeholder="Enter your username",
-                disabled=st.session_state.login_loading
-            )
+                "Username", placeholder="Enter your username")
             password = st.text_input(
-                "Password", 
-                type="password", 
-                placeholder="Enter your password",
-                disabled=st.session_state.login_loading
-            )
-            
-            # Remember Me Checkbox
-            remember_me = st.checkbox(
-                "Remember Me", 
-                value=st.session_state.get('remember_me_checked', False),
-                disabled=st.session_state.login_loading,
-                help="Keep me logged in on this browser"
-            )
-            
+                "Password", type="password", placeholder="Enter your password")
+
             col1, col2 = st.columns([1, 1])
             with col1:
-                # Dynamic button text based on loading state
-                button_text = "Verifying..." if st.session_state.login_loading else "Login"
                 login_btn = st.form_submit_button(
-                    button_text, 
-                    use_container_width=True,
-                    disabled=st.session_state.login_loading
-                )
-            
-            # Remove the separate loading indicator section since we're using spinner context
-            
-            if login_btn and not st.session_state.login_loading:
+                    "Login", use_container_width=True)
+
+            if login_btn:
                 if username and password:
-                    # Set loading state and perform authentication
-                    st.session_state.login_loading = True
+                    # Show loading indicator during authentication
+                    with st.spinner("Verifying credentials..."):
+                        success, user_data = authenticate_user(username, password)
                     
-                    # Show loading indicator immediately
-                    with st.spinner("Authenticating your credentials..."):
-                        try:
-                            # Perform authentication
-                            success, user_data = authenticate_user(username, password)
-                            
-                            if success:
-                                st.session_state.authenticated = True
-                                st.session_state.user_data = user_data
-                                
-                                # Handle Remember Me
-                                if remember_me:
-                                    st.session_state.remember_me = True
-                                    st.session_state.remember_me_checked = True
-                                    st.session_state.remembered_user_data = user_data
-                                else:
-                                    st.session_state.remember_me = False
-                                    st.session_state.remember_me_checked = False
-                                    if 'remembered_user_data' in st.session_state:
-                                        del st.session_state.remembered_user_data
-                                
-                                # Reset loading state
-                                st.session_state.login_loading = False
-                                st.success("Login successful!")
-                                time.sleep(0.5)  # Brief pause to show success message
-                                st.rerun()
-                            else:
-                                st.session_state.login_loading = False
-                                st.error("Invalid username or password")
-                        except Exception as e:
-                            st.session_state.login_loading = False
-                            st.error("An error occurred during login. Please try again.")
+                    if success:
+                        st.session_state.authenticated = True
+                        st.session_state.user_data = user_data
+                        st.success("Login successful!")
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password")
                 else:
                     st.error("Please fill in all fields")
-        
         st.markdown('</div>', unsafe_allow_html=True)
-    
+
     with tab2:
         st.markdown('<div class="auth-form">', unsafe_allow_html=True)
-        with st.form("register_form", clear_on_submit=False):
+        with st.form("register_form"):
             st.markdown("### Join the Community!")
-            
             full_name = st.text_input(
-                "Full Name", 
-                placeholder="Enter your full name",
-                disabled=st.session_state.register_loading
-            )
-            email = st.text_input(
-                "Email", 
-                placeholder="Enter your email",
-                disabled=st.session_state.register_loading
-            )
+                "Full Name", placeholder="Enter your full name")
+            email = st.text_input("Email", placeholder="Enter your email")
             username = st.text_input(
-                "Username", 
-                placeholder="Choose a username",
-                disabled=st.session_state.register_loading
-            )
+                "Username", placeholder="Choose a username")
             password = st.text_input(
-                "Password", 
-                type="password", 
-                placeholder="Create a password",
-                disabled=st.session_state.register_loading
-            )
+                "Password", type="password", placeholder="Create a password")
             confirm_password = st.text_input(
-                "Confirm Password", 
-                type="password", 
-                placeholder="Confirm your password",
-                disabled=st.session_state.register_loading
-            )
-            
+                "Confirm Password", type="password", placeholder="Confirm your password")
+
             col1, col2 = st.columns([1, 1])
             with col1:
-                # Dynamic button text for registration
-                button_text = "Creating Account..." if st.session_state.register_loading else "Create Account"
                 register_btn = st.form_submit_button(
-                    button_text, 
-                    use_container_width=True,
-                    disabled=st.session_state.register_loading
-                )
-            
-            # Remove the separate loading indicator section since we're using spinner context
-            
-            if register_btn and not st.session_state.register_loading:
+                    "Create Account", use_container_width=True)
+
+            if register_btn:
                 if all([full_name, email, username, password, confirm_password]):
                     if password == confirm_password:
                         if len(password) >= 6:
-                            # Set loading state and perform registration
-                            st.session_state.register_loading = True
-                            
-                            # Show loading indicator immediately
+                            # Show loading indicator during registration
                             with st.spinner("Creating your account..."):
-                                try:
-                                    success, message = register_user(
-                                        username, password, email, full_name)
-                                    
-                                    st.session_state.register_loading = False
-                                    
-                                    if success:
-                                        st.success("" + message)
-                                        st.info("Please login with your new account")
-                                    else:
-                                        st.error(" " + message)
-                                except Exception as e:
-                                    st.session_state.register_loading = False
-                                    st.error("An error occurred during registration. Please try again.")
+                                success, message = register_user(
+                                    username, password, email, full_name)
+                            
+                            if success:
+                                st.success("" + message)
+                                st.info("Please login with your new account")
+                            else:
+                                st.error(" " + message)
                         else:
                             st.error("Password must be at least 6 characters")
                     else:
                         st.error("Passwords don't match")
                 else:
                     st.error("Please fill in all fields")
-        
         st.markdown('</div>', unsafe_allow_html=True)
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
-
-
-# Add this function to handle logout and clear remember me
-def logout_user():
-    """Clear all authentication data including remember me"""
-    st.session_state.authenticated = False
-    st.session_state.remember_me = False
-    st.session_state.remember_me_checked = False
-    
-    # Clear user data
-    if 'user_data' in st.session_state:
-        del st.session_state.user_data
-    if 'remembered_user_data' in st.session_state:
-        del st.session_state.remembered_user_data
-    
-    # Clear loading states
-    st.session_state.login_loading = False
-    st.session_state.register_loading = False
-    
-    st.success("Logged out successfully!")
-    st.rerun()
-
-
-# Optional: Add this function to check if user should stay logged in
-def check_remember_me():
-    """Check if user should be automatically logged in"""
-    if st.session_state.get('remember_me', False):
-        remembered_user = st.session_state.get('remembered_user_data')
-        if remembered_user and not st.session_state.get('authenticated', False):
-            st.session_state.authenticated = True
-            st.session_state.user_data = remembered_user
-            return True
-    return False
 
 
 # Profile management page
